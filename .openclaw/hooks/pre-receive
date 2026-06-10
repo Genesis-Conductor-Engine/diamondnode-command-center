@@ -1,0 +1,29 @@
+#!/bin/bash
+# OpenClaw pre-receive hook for DiamondNode Command Center
+# Processes incoming directives before acceptance
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$HOOK_DIR/../../" && pwd)"
+INBOX_DIR="$REPO_ROOT/gc-workers/diamondnode-integration/handoffs/inbox"
+LOG_FILE="$HOOK_DIR/pre-receive.log"
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
+}
+
+while read oldrev newrev refname; do
+    log "Processing push: $oldrev -> $newrev ($refname)"
+    
+    # Check if this push contains handoff files
+    if git rev-list --full-history $oldrev..$newrev -- .openclaw/ directo/ gc-workers/diamondnode-integration/handoffs/ | read -r; then
+        log "Handoff content detected in push"
+        
+        # Trigger daemon processing
+        if [ -f "$REPO_ROOT/gc-workers/diamondnode-integration/bin/diamondnode-daemon.sh" ]; then
+            bash "$REPO_ROOT/gc-workers/diamondnode-integration/bin/diamondnode-daemon.sh" process >> "$LOG_FILE" 2>&1 &
+            log "Daemon triggered for handoff processing"
+        fi
+    fi
+    
+    exit 0
+done
