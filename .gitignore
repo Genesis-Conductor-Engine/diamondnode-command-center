@@ -1,0 +1,46 @@
+# System files
+.vibe/
+.agents/
+.aider-desk/
+.augment/
+.bob/
+.bun/
+.claude/
+.claude.json
+.claude-tmp/
+.codeartsdoer/
+.codebuddy/
+.codemaker/
+.codestudio/
+.codex/
+.commandcode/
+.config/
+.cache/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+*.swp
+*~
+
+# IDE
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Handoffs (processed)
+gc-workers/diamondnode-integration/handoffs/processed/
+gc-workers/diamondnode-integration/handoffs/archive/
+
+# OpenClaw logs
+.openclaw/logs/
+.openclaw/hooks/*.log
