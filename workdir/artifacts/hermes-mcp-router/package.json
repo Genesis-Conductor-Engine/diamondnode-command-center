@@ -1,0 +1,27 @@
+{
+  "name": "hermes-mcp-router",
+  "version": "1.0.0",
+  "description": "Hermes MCP Router — Cloudflare Worker with PBC integration, wQFLOP metrics, and Rule 30 VDF drift correction support",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "format": "prettier --write src/**/*.ts",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240620.0",
+    "typescript": "^5.5.0",
+    "wrangler": "^3.60.0"
+  },
+  "keywords": [
+    "mcp",
+    "hermes",
+    "cloudflare-workers",
+    "pbc",
+    "wqflop",
+    "rule30",
+    "vdf"
+  ],
+  "license": "MIT"
+}

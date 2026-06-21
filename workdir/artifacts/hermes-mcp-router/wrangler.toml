@@ -1,0 +1,13 @@
+name = "hermes-mcp-router"
+main = "src/index.ts"
+compatibility_date = "2026-06-21"
+compatibility_flags = ["nodejs_compat"]
+
+# Optional: bind a KV namespace for persisting the Hermes ledger
+# [[kv_namespaces]]
+# binding = "HERMES_LEDGER_KV"
+# id = "your-kv-namespace-id"
+
+# Optional: secrets (set via `wrangler secret put`):
+# PBC_WEBHOOK_URL
+# SLACK_WEBHOOK_URL

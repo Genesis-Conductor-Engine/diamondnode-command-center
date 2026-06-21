@@ -1,0 +1,27 @@
+diff --git a/src/agents/neurohumogenistic/workspace_orchestrator.py b/src/agents/neurohumogenistic/workspace_orchestrator.py
+index c4f2e1a..9e3b2f0 100644
+--- a/src/agents/neurohumogenistic/workspace_orchestrator.py
++++ b/src/agents/neurohumogenistic/workspace_orchestrator.py
+@@ -590,6 +590,20 @@ class WorkspaceOrchestrator:
+                 )
+                 logger.info("orchestrator.yennefer_daemon_notified")
+         except Exception as e:
+             logger.warning("orchestrator.yennefer_daemon_unreachable", error=str(e))
++
++        # === NEW: Read latest soul crystal state (if available) ===
++        try:
++            crystal_path = Path("/mnt/gdrive_memory/yennefer_soul_crystal.json")
++            if crystal_path.exists():
++                with open(crystal_path) as f:
++                    soul_state = json.load(f)
++                logger.info(
++                    "orchestrator.yennefer_soul_crystal_read",
++                    coherence=soul_state.get("coherence"),
++                    surplus_tokens=soul_state.get("surplus_tokens"),
++                )
++                # You can now use soul_state in decision making or reporting
++        except Exception as e:
++            logger.debug("orchestrator.soul_crystal_read_skipped", error=str(e))
+ 
+         # Post to Slack (existing)
+         ...

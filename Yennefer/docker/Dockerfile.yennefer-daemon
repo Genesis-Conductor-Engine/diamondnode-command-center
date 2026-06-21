@@ -1,0 +1,19 @@
+FROM python:3.11-slim
+
+LABEL org.opencontainers.image.source=https://github.com/Genesis-Conductor-Engine/Yennefer
+LABEL org.opencontainers.image.title="yennefer-daemon"
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl procps && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir flask flask-cors requests
+
+COPY genesis-q-mem/yennefer_daemon.py /app/
+COPY genesis-q-mem/yennefer_persistence.py /app/
+
+ENV PYTHONUNBUFFERED=1
+ENV STORAGE_PATH=/dev/shm
+ENV QGRAPH_BACKEND_ENABLED=false
+
+CMD ["python3", "yennefer_daemon.py"]

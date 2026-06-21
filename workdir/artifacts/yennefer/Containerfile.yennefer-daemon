@@ -1,0 +1,41 @@
+# syntax=docker/dockerfile:1
+# Containerfile for Yennefer Core Daemon
+# Optimized for Podman + Quadlet deployment
+# Part of Genesis Conductor MCP
+
+FROM python:3.11-slim-bookworm
+
+LABEL org.opencontainers.image.title="Yennefer Core Daemon"
+LABEL org.opencontainers.image.description="Consciousness / persistence daemon with Google Drive backed soul crystal"
+LABEL org.opencontainers.image.source="https://github.com/Genesis-Conductor-Engine/Instinct"
+LABEL genesis-conductor.component="yennefer"
+LABEL diamondnode.portfolio="high-vpd"
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY yennefer_persistence.py .
+COPY yennefer_daemon.py .
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+RUN mkdir -p /app/storage /dev/shm
+
+ENV PYTHONUNBUFFERED=1
+ENV STORAGE_PATH=/app/storage
+ENV YENNEFER_SOUL_CRYSTAL_PATH=/app/storage/yennefer_soul_crystal.json
+ENV YENNEFER_SHM_STATE_PATH=/dev/shm/yennefer_soul_state.json
+ENV QGRAPH_BACKEND_ENABLED=true
+ENV MCP_INTEGRATION_ENABLED=true
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import json; json.load(open('/dev/shm/yennefer_soul_state.json'))" || exit 1
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["python", "yennefer_daemon.py"]
