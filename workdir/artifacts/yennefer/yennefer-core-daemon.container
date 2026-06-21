@@ -1,0 +1,40 @@
+[Unit]
+Description=Yennefer Core Daemon (Genesis Conductor)
+Documentation=https://github.com/Genesis-Conductor-Engine/Instinct
+After=network-online.target remote-fs.target
+Wants=network-online.target
+
+[Container]
+Image=ghcr.io/genesis-conductor-engine/yennefer/yennefer-daemon:latest
+ContainerName=yennefer_core_daemon
+
+Volume=/mnt/gdrive_memory:/app/storage:Z
+Volume=/dev/shm:/dev/shm:Z
+
+Environment=STORAGE_PATH=/app/storage
+Environment=YENNEFER_SOUL_CRYSTAL_PATH=/app/storage/yennefer_soul_crystal.json
+Environment=YENNEFER_SHM_STATE_PATH=/dev/shm/yennefer_soul_state.json
+Environment=QGRAPH_BACKEND_ENABLED=true
+Environment=MCP_INTEGRATION_ENABLED=true
+Environment=LOG_LEVEL=info
+
+PublishPort=8089:8089
+
+Memory=4g
+
+HealthCmd=curl -sf http://localhost:8089/health
+HealthInterval=30s
+HealthTimeout=5s
+HealthStartPeriod=20s
+HealthRetries=3
+
+Label=genesis-conductor.component=yennefer
+Label=diamondnode.portfolio=high-vpd
+Label=persistence=google-drive-backed
+
+[Service]
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=default.target

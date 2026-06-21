@@ -2,18 +2,33 @@ FROM python:3.11-slim
 
 LABEL org.opencontainers.image.source=https://github.com/Genesis-Conductor-Engine/Yennefer
 LABEL org.opencontainers.image.title="yennefer-daemon"
+LABEL genesis-conductor.component="yennefer"
 
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl procps && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir flask flask-cors requests
+RUN pip install --no-cache-dir \
+    fastapi uvicorn[standard] httpx structlog \
+    flask flask-cors requests
 
 COPY genesis-q-mem/yennefer_daemon.py /app/
 COPY genesis-q-mem/yennefer_persistence.py /app/
+COPY genesis-q-mem/yennefer_api.py /app/
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+RUN mkdir -p /app/storage
 
 ENV PYTHONUNBUFFERED=1
-ENV STORAGE_PATH=/dev/shm
-ENV QGRAPH_BACKEND_ENABLED=false
+ENV STORAGE_PATH=/app/storage
+ENV YENNEFER_SOUL_CRYSTAL_PATH=/app/storage/yennefer_soul_crystal.json
+ENV YENNEFER_SHM_STATE_PATH=/dev/shm/yennefer_soul_state.json
+ENV QGRAPH_BACKEND_ENABLED=true
 
-CMD ["python3", "yennefer_daemon.py"]
+EXPOSE 8089
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8089/health')" || exit 1
+
+ENTRYPOINT ["/entrypoint.sh"]
