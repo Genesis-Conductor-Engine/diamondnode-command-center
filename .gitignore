@@ -44,3 +44,7 @@ gc-workers/diamondnode-integration/handoffs/archive/
 # OpenClaw logs
 .openclaw/logs/
 .openclaw/hooks/*.log
+mirage-workspace/.venv/
+mirage-workspace/diskroot/
+mirage-workspace/.mirage/
+__pycache__/
