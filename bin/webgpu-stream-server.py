@@ -12,7 +12,9 @@ HOST = "127.0.0.1"
 PORT = 8790
 HTML = Path(__file__).resolve().parent / "webgpu-self-observers.html"
 STATE = Path("/tmp/sota-livestream/self-observer-state.json")
+VIEWER_INTENTS = Path("/tmp/sota-livestream/x-viewer-intents.json")
 STATE_PY = Path(__file__).resolve().parent / "webgpu-self-observer-state.py"
+INTENTS_PY = Path(__file__).resolve().parent / "x-viewer-intents.py"
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -31,6 +33,14 @@ class Handler(BaseHTTPRequestHandler):
                 self._bytes(STATE.read_bytes(), "application/json")
             else:
                 self._json({"error": "no state"}, 404)
+            return
+        if self.path == "/x-viewer-intents.json":
+            if not VIEWER_INTENTS.is_file():
+                subprocess.run([sys.executable, str(INTENTS_PY)], check=False)
+            if VIEWER_INTENTS.is_file():
+                self._bytes(VIEWER_INTENTS.read_bytes(), "application/json")
+            else:
+                self._json({"error": "no intents"}, 404)
             return
         if self.path == "/health":
             self._json({"status": "ok", "service": "webgpu-stream-server"})

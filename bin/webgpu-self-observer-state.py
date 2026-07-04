@@ -51,6 +51,14 @@ def main():
         except Exception:
             pass
 
+    viewer_intents = {}
+    vi = STATE_DIR / "x-viewer-intents.json"
+    if vi.is_file():
+        try:
+            viewer_intents = json.loads(vi.read_text())
+        except Exception:
+            pass
+
     viewers = read_txt("live-viewers.txt", "0")
     signal = intent.get("signal", read_txt("exhibit-status.txt", "silence").split("intent:")[-1].strip()[:20])
     occupant = read_txt("exhibit-who.txt", "—")
@@ -108,6 +116,7 @@ def main():
             "lines": read_txt("chat-response-latest.txt", "—")[:120],
         },
         "x_pulse": x_pulse,
+        "viewer_intents": viewer_intents,
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(payload, indent=2) + "\n")

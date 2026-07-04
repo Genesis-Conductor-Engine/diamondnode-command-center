@@ -455,6 +455,14 @@ x_line = (
 if x_ann:
     x_line += f" · topic:{x_ann.get('name', '')[:24]}"
 write("exhibit-x-pulse.txt", x_line[:220])
+viewer_intents = {}
+vip = state / "x-viewer-intents.json"
+if vip.is_file():
+    try:
+        viewer_intents = json.loads(vip.read_text())
+    except Exception:
+        pass
+write("exhibit-x-intents.txt", (viewer_intents.get("cta_overlay") or "viewers · Post · Follow")[:220])
 write(
     "exhibit-footer.txt",
     f"yennefer-quest.pages.dev/fable5-exhibit-app  ·  "
@@ -483,6 +491,7 @@ update_all() {
   # X API v2 observer pulse (data dictionary fields) then exhibit + WebGPU HUD
   /home/diamondnode/venv312/bin/python /home/diamondnode/thermodynamic-daemon/ag15_openfda_research.py >/dev/null 2>&1 || true
   /home/diamondnode/venv312/bin/python /home/diamondnode/bin/x-observer-pulse.py >/dev/null 2>&1 || true
+  /home/diamondnode/venv312/bin/python /home/diamondnode/bin/x-viewer-intents.py >/dev/null 2>&1 || true
   /home/diamondnode/venv312/bin/python /home/diamondnode/bin/sota-chat-responder.py >/dev/null 2>&1 || true
   apply_exhibit_display
   /home/diamondnode/venv312/bin/python /home/diamondnode/bin/webgpu-self-observer-state.py >/dev/null 2>&1 || true

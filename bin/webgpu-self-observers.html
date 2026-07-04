@@ -36,6 +36,13 @@
   }
   #chat-ticker .viewer { color: #ffd700; }
   #chat-ticker .host { color: #00d4ff; }
+  #viewer-cta {
+    position: absolute; right: 28px; bottom: 148px; max-width: 420px;
+    background: #0a0a12dd; border: 1px solid #2a3048; border-radius: 6px;
+    padding: 8px 12px; font-size: 10px; line-height: 1.45; color: #888;
+  }
+  #viewer-cta .cta-title { color: #ffd700; letter-spacing: .08em; text-transform: uppercase; font-size: 9px; margin-bottom: 4px; }
+  #viewer-cta .cta-url { color: #6b9fff; word-break: break-all; }
 </style>
 </head>
 <body>
@@ -52,6 +59,11 @@
     <div class="col" id="obs-panel"></div>
   </div>
   <div id="chat-ticker"></div>
+  <div id="viewer-cta">
+    <div class="cta-title">Viewers — X Web Intents (companion page)</div>
+    <div id="viewer-cta-line">Post · Follow · Like · Repost</div>
+    <div class="cta-url" id="viewer-companion">yennefer.quest/fable5-exhibit-app.html</div>
+  </div>
   <div class="bar bottom">
     <span id="footer-left">VA RTMP · 1920×1080 · 9Mbps · 30fps</span>
     <span id="footer-right">encoder live</span>
@@ -121,7 +133,13 @@ function renderHud() {
     el('X topic', (o.x_top_topic || '—').slice(0, 48)),
     el('X pulse', (o.x_top_post || '—').slice(0, 72)),
     el('chat reply', `◂ ${o.chat_last_host || '?'}: ${(o.chat_last_reply || '—').slice(0, 56)}`),
+    el('viewer CTA', (state.viewer_intents && state.viewer_intents.cta_overlay) || 'Post · Follow · companion'),
   ].join('');
+  const vi = state.viewer_intents || {};
+  const ctaLine = document.getElementById('viewer-cta-line');
+  const companion = document.getElementById('viewer-companion');
+  if (ctaLine) ctaLine.textContent = vi.cta_overlay || 'Post · Follow @kovachenterprises';
+  if (companion) companion.textContent = vi.companion_hint || vi.exhibit_url || 'yennefer.quest/fable5-exhibit-app.html';
   const exchanges = (state.chat && state.chat.exchanges) || [];
   const ticker = exchanges.length
     ? exchanges.map(ex =>

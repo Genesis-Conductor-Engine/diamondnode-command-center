@@ -22,6 +22,8 @@ MANIFEST = Path.home() / "digital-assets" / "manifest.json"
 DUNK_PY = Path.home() / "bin/dunk-tank.py"
 CHAT_INBOX = STATE / "chat-inbox.jsonl"
 CHAT_RESPONSES = STATE / "chat-responses.json"
+VIEWER_INTENTS = STATE / "x-viewer-intents.json"
+VIEWER_INTENTS_PY = Path.home() / "bin/x-viewer-intents.py"
 CHAT_RESPONDER = Path.home() / "bin/sota-chat-responder.py"
 
 
@@ -52,6 +54,7 @@ class Handler(BaseHTTPRequestHandler):
             "/connection-shake.json": CONNECTION_SHAKE,
             "/digital-assets/manifest.json": MANIFEST,
             "/chat/responses.json": CHAT_RESPONSES,
+            "/x-viewer-intents.json": VIEWER_INTENTS,
         }
         if self.path == "/health":
             self._json({
@@ -65,7 +68,10 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(404)
             return
         if not target.exists():
-            subprocess.run([sys.executable, str(DUNK_PY)], check=False) if target == DUNK_TANK else None
+            if target == DUNK_TANK:
+                subprocess.run([sys.executable, str(DUNK_PY)], check=False)
+            elif target == VIEWER_INTENTS:
+                subprocess.run([sys.executable, str(VIEWER_INTENTS_PY)], check=False)
         if not target.exists():
             self._json({"error": "not found", "path": self.path}, 404)
             return
