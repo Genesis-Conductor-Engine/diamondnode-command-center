@@ -136,6 +136,9 @@ Tunneled from <code>dn.genesisconductor.io</code> via cloudflared → <code>127.
   <p><a href="/epoch/latest">/epoch/latest</a> — Opux HyperNEAT epoch</p>
   <p><a href="/attestation/latest">/attestation/latest</a> — .sol witness</p>
   <p><a href="/story/latest">/story/latest</a> — Alchemy story log</p>
+  <p><a href="/ag15/research">/ag15/research</a> — AG15 openFDA substrate manifest</p>
+  <p><a href="/ag15/verification">/ag15/verification</a> — double-loop authority evt</p>
+  <p><a href="/hermes/simulation">/hermes/simulation</a> — pinned diamondnodebot swarm state</p>
  </div>
  <div class="card"><h3>Landauer envelope</h3>
   <p><span class="k">high:</span> <span class="v">50 W</span> (VRAM &gt; 40% or GPU &gt; 25%)</p>
@@ -200,6 +203,43 @@ class Handler(BaseHTTPRequestHandler):
                 from epoch_orchestrator import run_pipeline
                 result = run_pipeline(use_alphagenome=True)
                 return self._json(result)
+            if self.path in ("/ag15/research", "/ag15/manifest"):
+                p = Path("/tmp/ag15-research/manifest.json")
+                if not p.is_file():
+                    from ag15_openfda_research import run_pipeline as ag15_run
+                    return self._json(ag15_run())
+                return self._json(json.loads(p.read_text()))
+            if self.path == "/ag15/verification":
+                p = Path("/tmp/ag15-research/verification/latest.json")
+                if p.is_file():
+                    return self._json(json.loads(p.read_text()))
+                return self._json({"error": "no verification yet — GET /ag15/verify/run"}, 404)
+            if self.path == "/ag15/verify/run":
+                from ag15_openfda_research import run_pipeline as ag15_run
+                from ag15_double_loop_verifier import verify as ag15_verify
+                ag15_run()
+                return self._json(ag15_verify())
+            if self.path == "/hermes/simulation":
+                swarm_cfg = Path.home() / "genesis_conductor_engine/swarm/ag15_diamondnodebot_swarm.json"
+                manifest = Path("/tmp/ag15-research/manifest.json")
+                verification = Path("/tmp/ag15-research/verification/latest.json")
+                substrate = Path.home() / "yennefer-breath/state/substrate_hermes.jsonl"
+                last_substrate = None
+                if substrate.is_file():
+                    lines = [ln for ln in substrate.read_text().splitlines() if ln.strip()]
+                    if lines:
+                        try:
+                            last_substrate = json.loads(lines[-1])
+                        except Exception:
+                            pass
+                return self._json({
+                    "simulation": "hermes_ag15_substrate",
+                    "swarm": json.loads(swarm_cfg.read_text()) if swarm_cfg.is_file() else {},
+                    "research": json.loads(manifest.read_text()) if manifest.is_file() else None,
+                    "verification": json.loads(verification.read_text()) if verification.is_file() else None,
+                    "substrate_hermes_tail": last_substrate,
+                    "reachable": True,
+                })
             self._json({"error": "not found", "path": self.path}, 404)
         except Exception as e:
             self._json({"error": str(e), "type": type(e).__name__}, 500)

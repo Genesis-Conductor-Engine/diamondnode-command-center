@@ -1,0 +1,49 @@
+{
+  "schema": "genesis-swarm-pin-v1",
+  "swarm_id": "diamondnodebot_ag15_hermes",
+  "codename": "AG15",
+  "title": "Thermodynamic Transistor Substrate — pinned Hermes research swarm",
+  "authority_tier": "post_phd_double_loop",
+  "pinned": true,
+  "reachable_via": "hermes_simulation",
+  "agents": [
+    {
+      "agent_id": "diamondnodebot_ag15_hermes_01",
+      "agent_type": "hermes",
+      "role": "openfda_evidence_collector",
+      "capabilities": ["openfda_search", "ag15_manifest", "fda_510k"],
+      "task_queue": "ag15:openfda"
+    },
+    {
+      "agent_id": "diamondnodebot_ag15_hermes_02",
+      "agent_type": "hermes",
+      "role": "thermo_substrate_simulator",
+      "capabilities": ["thermo_epoch", "nvml_envelope", "opux_reducibility"],
+      "task_queue": "ag15:thermo"
+    },
+    {
+      "agent_id": "diamondnodebot_ag15_hermes_03",
+      "agent_type": "hermes",
+      "role": "double_loop_falsification_authority",
+      "capabilities": ["procedural_truth", "falsification_gate", "authority_emit"],
+      "task_queue": "ag15:verify"
+    }
+  ],
+  "endpoints": {
+    "research_manifest": "http://127.0.0.1:9100/ag15/research",
+    "verification": "http://127.0.0.1:9100/ag15/verification",
+    "hermes_simulation": "http://127.0.0.1:9100/hermes/simulation",
+    "double_loop_run": "http://127.0.0.1:9100/ag15/verify/run"
+  },
+  "documentation": {
+    "openfda_skill": "openfda-database",
+    "pipeline": "thermodynamic-daemon/ag15_openfda_research.py",
+    "verifier": "thermodynamic-daemon/ag15_double_loop_verifier.py",
+    "procedural_truth": "swarm/procedural_truth_verifier.py"
+  },
+  "falsification_policy": {
+    "high_severity_blocks_authority": true,
+    "crystal_target": 0.85,
+    "composite_formula": "0.45*inner_fda_thermo + 0.55*outer_procedural"
+  }
+}

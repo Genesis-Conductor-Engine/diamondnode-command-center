@@ -69,6 +69,19 @@
       "type": "anchor",
       "source": "ThermoInformationAttestation.sol",
       "outputs": ["work_hash", "reducibility_score", "epoch_sealed"]
+    },
+    {
+      "id": "ag15-openfda-substrate",
+      "type": "authority_research",
+      "codename": "AG15",
+      "title": "Thermodynamic Transistor Substrate — openFDA + Hermes",
+      "source": "ag15_openfda_research.py",
+      "skill": "openfda-database",
+      "swarm": "diamondnodebot_ag15_hermes",
+      "verification": "ag15_double_loop_verifier.py",
+      "authority_tier": "post_phd_double_loop",
+      "endpoints": ["/ag15/research", "/ag15/verification", "/hermes/simulation", "/ag15/verify/run"],
+      "outputs": ["fda_evidence_cards", "falsification_summary", "authority_pass", "composite_score"]
     }
   ]
 }

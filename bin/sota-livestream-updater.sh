@@ -481,6 +481,7 @@ update_all() {
   atomic_write "$STATE_DIR/live-viewers.txt" "$(( 1200 + ${inf_pct%.*} * 18 ))"
 
   # X API v2 observer pulse (data dictionary fields) then exhibit + WebGPU HUD
+  /home/diamondnode/venv312/bin/python /home/diamondnode/thermodynamic-daemon/ag15_openfda_research.py >/dev/null 2>&1 || true
   /home/diamondnode/venv312/bin/python /home/diamondnode/bin/x-observer-pulse.py >/dev/null 2>&1 || true
   /home/diamondnode/venv312/bin/python /home/diamondnode/bin/sota-chat-responder.py >/dev/null 2>&1 || true
   apply_exhibit_display
