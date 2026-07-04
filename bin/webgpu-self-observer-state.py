@@ -43,6 +43,14 @@ def main():
         except Exception:
             pass
 
+    chat_resp = {}
+    cr = STATE_DIR / "chat-responses.json"
+    if cr.is_file():
+        try:
+            chat_resp = json.loads(cr.read_text())
+        except Exception:
+            pass
+
     viewers = read_txt("live-viewers.txt", "0")
     signal = intent.get("signal", read_txt("exhibit-status.txt", "silence").split("intent:")[-1].strip()[:20])
     occupant = read_txt("exhibit-who.txt", "—")
@@ -56,6 +64,8 @@ def main():
     x_agg = x_pulse.get("aggregate_metrics") or {}
     top_post = (x_pulse.get("top_posts") or [{}])[0] if x_pulse.get("top_posts") else {}
     top_ann = (x_pulse.get("top_annotations") or [{}])[0]
+    last_chat = chat_resp.get("last_reply") or {}
+    recent = (chat_resp.get("exchanges") or [])[-3:]
 
     payload = {
         "ts": datetime.now(timezone.utc).isoformat(),
@@ -87,6 +97,15 @@ def main():
             "x_replies": x_agg.get("reply_count", 0),
             "x_top_topic": top_ann.get("name", "—") if top_ann else "—",
             "x_communities": x_pulse.get("community_posts", 0),
+            "chat_last_reply": (last_chat.get("reply") or "—")[:80],
+            "chat_last_host": last_chat.get("host_label", "—"),
+            "chat_last_viewer": last_chat.get("viewer", "—"),
+            "chat_count": len(chat_resp.get("exchanges") or []),
+            "chat_source": last_chat.get("source", "—"),
+        },
+        "chat": {
+            "exchanges": recent,
+            "lines": read_txt("chat-response-latest.txt", "—")[:120],
         },
         "x_pulse": x_pulse,
     }

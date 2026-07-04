@@ -28,6 +28,14 @@
   .line { margin: 6px 0; line-height: 1.45; }
   .metric { color: #aaa; }
   .val { color: #fff; }
+  #chat-ticker {
+    position: absolute; left: 28px; right: 28px; bottom: 52px;
+    background: #0a0a12dd; border: 1px solid #2a3048; border-radius: 6px;
+    padding: 10px 14px; font-size: 11px; line-height: 1.5; max-height: 96px;
+    overflow: hidden;
+  }
+  #chat-ticker .viewer { color: #ffd700; }
+  #chat-ticker .host { color: #00d4ff; }
 </style>
 </head>
 <body>
@@ -43,6 +51,7 @@
     <div class="col mid">interference<br>WebGPU<br>WGSL</div>
     <div class="col" id="obs-panel"></div>
   </div>
+  <div id="chat-ticker"></div>
   <div class="bar bottom">
     <span id="footer-left">VA RTMP · 1920×1080 · 9Mbps · 30fps</span>
     <span id="footer-right">encoder live</span>
@@ -111,7 +120,16 @@ function renderHud() {
     el('X metrics', `♥ ${o.x_likes ?? 0} · ↻ ${o.x_retweets ?? 0} · 💬 ${o.x_replies ?? 0}`),
     el('X topic', (o.x_top_topic || '—').slice(0, 48)),
     el('X pulse', (o.x_top_post || '—').slice(0, 72)),
+    el('chat reply', `◂ ${o.chat_last_host || '?'}: ${(o.chat_last_reply || '—').slice(0, 56)}`),
   ].join('');
+  const exchanges = (state.chat && state.chat.exchanges) || [];
+  const ticker = exchanges.length
+    ? exchanges.map(ex =>
+        `<div><span class="viewer">▸ @${ex.viewer}:</span> ${(ex.question || '').slice(0, 64)}</div>`
+        + `<div><span class="host">◂ ${ex.host_label || ex.host}:</span> ${(ex.reply || '').slice(0, 72)}</div>`
+      ).join('')
+    : '<div class="host">◂ awaiting viewer chat — POST /chat/inbox</div>';
+  document.getElementById('chat-ticker').innerHTML = ticker;
   document.getElementById('gap-score').textContent =
     `Δ perception ${(state.gap ?? 0).toFixed(3)}`;
   document.getElementById('footer-right').textContent = state.ts || new Date().toISOString();

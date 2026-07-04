@@ -253,38 +253,9 @@ except: print("18 23")
   echo "$orb"   # return for caller
 }
 
-# Generate contextual semantic chat messages that relationally diffuse meaning
-# across QFLOP shm, PQC, GPU temp, fleet/swarm status, viewers, X feed
-# Deeper: explicitly link e.g. GPU temp ⇔ QFLOP inference, PQC to orb shelter
+# Live chat overlay lines are owned by sota-chat-responder.py (Responses API + inbox).
 get_semantic_chat() {
-  local pct liq gpu_t swarm_s up_s
-  pct=$(jq_or_py /dev/shm/qflop_onchain_attest.json '.pct' 2>/dev/null || echo "10.5")
-  liq=$(jq_or_py /dev/shm/accumulated_liquidity.json '.total_usd' 2>/dev/null | cut -c1-8 || echo "365718")
-  gpu_t=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits 2>/dev/null | head -1 | xargs || echo "42")
-  # fleet swarm relational
-  swarm_s=$(ps aux 2>/dev/null | grep -E 'openclaw|run_xai_bridge' | grep -v grep | wc -l || echo 4)
-  up_s=$(python3 -c '
-import json
-try:
-  d=json.load(open("/tmp/monitor_state.json"))
-  print(sum(1 for s in d.get("services",{}).values() if isinstance(s,dict) and s.get("status")=="UP"))
-except: print(18)
-' 2>/dev/null || echo 18)
-  local c1 c2 c3 c4 c5
-  # Semantically rich relational examples as specified
-  c1="Orb PQC-SHELTERED: GPU ${gpu_t}C fuels QFLOP ${pct}pct inference diffusion to X live Fable"
-  c2="Relational: liq ${liq}USD + ${up_s} fleet UP | PQC hybrid anchors orb shelter (Ed25519+Dilithium)"
-  c3="GPU ${gpu_t}C thermally coupled to QFLOP ${pct}pct milestone + Seismic CRYSTALLINE = orb resonance"
-  c4="PQC sovereign ⇒ orb sheltered | swarm claws:${swarm_s} propagate chat modulation to 10pct+ attest"
-  c5="Contextual semantic diffusion: /fleet /swarm health + shm QFLOP → yennefer.quest Fable UI live inference"
-  echo "$c1"
-  atomic_write "${STATE_DIR}/chat-2.txt" "$c2"
-  atomic_write "${STATE_DIR}/chat-3.txt" "$c3"
-  atomic_write "${STATE_DIR}/chat-4.txt" "$c4"
-  atomic_write "${STATE_DIR}/chat-5.txt" "$c5"
-  atomic_write "${STATE_DIR}/chat-1.txt" "$c1"
-  # extra rich for filter
-  atomic_write "${STATE_DIR}/chat-activity.txt" "GPU${gpu_t}C | QFLOP${pct}pct | PQC->shelter | ${up_s}UP swarm:${swarm_s}"
+  /home/diamondnode/venv312/bin/python /home/diamondnode/bin/sota-chat-responder.py >/dev/null 2>&1 || true
 }
 
 get_footer() {
@@ -511,6 +482,7 @@ update_all() {
 
   # X API v2 observer pulse (data dictionary fields) then exhibit + WebGPU HUD
   /home/diamondnode/venv312/bin/python /home/diamondnode/bin/x-observer-pulse.py >/dev/null 2>&1 || true
+  /home/diamondnode/venv312/bin/python /home/diamondnode/bin/sota-chat-responder.py >/dev/null 2>&1 || true
   apply_exhibit_display
   /home/diamondnode/venv312/bin/python /home/diamondnode/bin/webgpu-self-observer-state.py >/dev/null 2>&1 || true
 }
