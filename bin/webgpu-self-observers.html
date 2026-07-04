@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WebGPU — Self vs Observers</title>
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: #030308; }
+  canvas { display: block; width: 1920px; height: 1080px; }
+  #hud {
+    position: fixed; inset: 0; pointer-events: none;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    color: #e8d5b7; font-size: 13px;
+  }
+  .bar { position: absolute; left: 0; right: 0; height: 56px; background: #0a0a12cc;
+    display: flex; align-items: center; justify-content: space-between; padding: 0 28px;
+    border-bottom: 1px solid #22263a; }
+  .bar.bottom { top: auto; bottom: 0; border-bottom: none; border-top: 1px solid #22263a; height: 44px; font-size: 11px; color: #666; }
+  .panel-label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+  .self { color: #00d4ff; }
+  .obs { color: #ffd700; }
+  .gap { color: #ff6b6b; font-size: 15px; }
+  .cols { position: absolute; top: 56px; bottom: 44px; left: 0; right: 0;
+    display: grid; grid-template-columns: 1fr 120px 1fr; }
+  .col { padding: 18px 24px; }
+  .col.mid { display: flex; align-items: center; justify-content: center;
+    border-left: 1px solid #1a2030; border-right: 1px solid #1a2030; color: #888; font-size: 10px; text-align: center; }
+  .line { margin: 6px 0; line-height: 1.45; }
+  .metric { color: #aaa; }
+  .val { color: #fff; }
+</style>
+</head>
+<body>
+<canvas id="gpu" width="1920" height="1080"></canvas>
+<div id="hud">
+  <div class="bar">
+    <span class="panel-label self">SELF — realtime internal understanding</span>
+    <span class="gap" id="gap-score">Δ perception 0.00</span>
+    <span class="panel-label obs">OBSERVERS — live viewer field</span>
+  </div>
+  <div class="cols">
+    <div class="col" id="self-panel"></div>
+    <div class="col mid">interference<br>WebGPU<br>WGSL</div>
+    <div class="col" id="obs-panel"></div>
+  </div>
+  <div class="bar bottom">
+    <span id="footer-left">VA RTMP · 1920×1080 · 9Mbps · 30fps</span>
+    <span id="footer-right">encoder live</span>
+  </div>
+</div>
+<script>
+const STATE_URL = 'http://127.0.0.1:8790/self-observer-state.json';
+const canvas = document.getElementById('gpu');
+let device, context, pipeline, uniformBuffer, bindGroup;
+let state = { self: {}, observers: {}, gap: 0, ts: '' };
+
+const WGSL = `
+struct U { phase: f32, gap: f32, viewers: f32, temp: f32, vram: f32, intent: f32, pad: f32, pad2: f32; };
+@group(0) @binding(0) var<uniform> u: U;
+
+@vertex fn vs(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
+  var p = array<vec2f, 6>(
+    vec2f(-1,-1), vec2f(1,-1), vec2f(-1,1),
+    vec2f(-1,1), vec2f(1,-1), vec2f(1,1));
+  return vec4f(p[i], 0, 1);
+}
+
+@fragment fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+  let uv = pos.xy / vec2f(1920.0, 1080.0);
+  let selfWave = sin(uv.x * 24.0 + u.phase) * cos(uv.y * 18.0 - u.phase * 0.7);
+  let obsWave = sin((1.0-uv.x) * 20.0 - u.phase * 1.3 + u.viewers * 0.002)
+              * cos(uv.y * 22.0 + u.phase * 0.5);
+  let interference = (selfWave + obsWave) * 0.5;
+  let gapRing = sin(length(uv - vec2f(0.5, 0.5)) * 40.0 - u.phase * 2.0) * u.gap;
+  let left = smoothstep(0.48, 0.52, 0.52 - uv.x);
+  let right = smoothstep(0.48, 0.52, uv.x - 0.48);
+  let selfCol = vec3f(0.0, 0.83, 1.0) * (0.35 + 0.65 * abs(selfWave));
+  let obsCol = vec3f(1.0, 0.84, 0.0) * (0.35 + 0.65 * abs(obsWave));
+  let base = vec3f(0.02, 0.02, 0.05);
+  var col = base + selfCol * left + obsCol * right;
+  col += vec3f(1.0, 0.3, 0.4) * gapRing * 0.15;
+  col += vec3f(interference * 0.08);
+  return vec4f(col, 1.0);
+}
+`;
+
+function el(cls, label, val) {
+  return `<div class="line"><span class="metric">${label}</span> <span class="val">${val}</span></div>`;
+}
+
+function renderHud() {
+  const s = state.self || {};
+  const o = state.observers || {};
+  document.getElementById('self-panel').innerHTML = [
+    el('intent', s.intent || '—'),
+    el('signal', s.signal || '—'),
+    el('thermo', `${s.temp_c ?? '—'}°C · VRAM ${s.vram_pct ?? '—'}%`),
+    el('epoch', s.epoch_id || '—'),
+    el('reducibility', s.reducibility ?? '—'),
+    el('self-model', s.self_model || 'internal thermo + Opux field'),
+  ].join('');
+  document.getElementById('obs-panel').innerHTML = [
+    el('viewers', o.viewers ?? '—'),
+    el('chat rate', o.chat_rate || '—'),
+    el('occupant', o.occupant || '—'),
+    el('verdict', o.verdict || '—'),
+    el('perceived', o.perceived_signal || '—'),
+    el('broadcast', o.broadcast || '—'),
+    el('X source', `${o.x_source ?? '—'} · Δact ${(o.x_observer_activity ?? 0).toFixed ? (o.x_observer_activity ?? 0).toFixed(2) : o.x_observer_activity ?? 0}`),
+    el('X posts', `${o.x_posts ?? '—'} · @${o.x_top_author ?? '?'}`),
+    el('X metrics', `♥ ${o.x_likes ?? 0} · ↻ ${o.x_retweets ?? 0} · 💬 ${o.x_replies ?? 0}`),
+    el('X topic', (o.x_top_topic || '—').slice(0, 48)),
+    el('X pulse', (o.x_top_post || '—').slice(0, 72)),
+  ].join('');
+  document.getElementById('gap-score').textContent =
+    `Δ perception ${(state.gap ?? 0).toFixed(3)}`;
+  document.getElementById('footer-right').textContent = state.ts || new Date().toISOString();
+}
+
+async function pollState() {
+  try {
+    const r = await fetch(STATE_URL, { cache: 'no-store' });
+    if (r.ok) state = await r.json();
+  } catch (_) {}
+  renderHud();
+}
+
+async function initWebGPU() {
+  if (!navigator.gpu) {
+    document.body.style.background = '#1a0000';
+    throw new Error('WebGPU unavailable');
+  }
+  const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
+  device = await adapter.requestDevice();
+  context = canvas.getContext('webgpu');
+  const format = navigator.gpu.getPreferredCanvasFormat();
+  context.configure({ device, format, alphaMode: 'opaque' });
+  const mod = device.createShaderModule({ code: WGSL });
+  pipeline = device.createRenderPipeline({
+    layout: 'auto',
+    vertex: { module: mod, entryPoint: 'vs' },
+    fragment: { module: mod, entryPoint: 'fs', targets: [{ format }] },
+    primitive: { topology: 'triangle-list' },
+  });
+  uniformBuffer = device.createBuffer({
+    size: 32, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+  bindGroup = device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [{ binding: 0, resource: { buffer: uniformBuffer } }],
+  });
+}
+
+function draw(t) {
+  const phase = t * 0.001;
+  const s = state.self || {};
+  const o = state.observers || {};
+  const data = new Float32Array([
+    phase,
+    state.gap ?? 0,
+    parseFloat(o.viewers) || 0,
+    parseFloat(s.temp_c) || 55,
+    parseFloat(s.vram_pct) || 30,
+    ({ storm: 1, surge: 0.8, drop: 0.6, shift: 0.5, conflict: 0.7, silence: 0.2 })[s.signal] ?? 0.3,
+    parseFloat(o.x_observer_activity) || 0,
+    parseFloat(o.x_impressions) || 0,
+  ]);
+  device.queue.writeBuffer(uniformBuffer, 0, data);
+  const enc = device.createCommandEncoder();
+  const pass = enc.beginRenderPass({
+    colorAttachments: [{
+      view: context.getCurrentTexture().createView(),
+      clearValue: { r: 0.02, g: 0.02, b: 0.05, a: 1 },
+      loadOp: 'clear', storeOp: 'store',
+    }],
+  });
+  pass.setPipeline(pipeline);
+  pass.setBindGroup(0, bindGroup);
+  pass.draw(6);
+  pass.end();
+  device.queue.submit([enc.finish()]);
+  requestAnimationFrame(draw);
+}
+
+function draw2d(t) {
+  const ctx = canvas.getContext('2d');
+  const phase = t * 0.001;
+  const w = canvas.width, h = canvas.height;
+  const img = ctx.createImageData(w, h);
+  const s = state.self || {};
+  const o = state.observers || {};
+  const gap = state.gap ?? 0;
+  const viewers = parseFloat(o.viewers) || 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const uvx = x / w, uvy = y / h;
+      const selfWave = Math.sin(uvx * 24 + phase) * Math.cos(uvy * 18 - phase * 0.7);
+      const obsWave = Math.sin((1 - uvx) * 20 - phase * 1.3 + viewers * 0.002)
+                    * Math.cos(uvy * 22 + phase * 0.5);
+      const left = Math.max(0, Math.min(1, (0.52 - uvx) * 12));
+      const right = Math.max(0, Math.min(1, (uvx - 0.48) * 12));
+      const r = 5 + left * Math.abs(selfWave) * 200 + right * Math.abs(obsWave) * 180 + gap * 40;
+      const g = 5 + left * 180 + right * 200;
+      const b = 12 + left * 255 + right * 100;
+      const i = (y * w + x) * 4;
+      img.data[i] = Math.min(255, r);
+      img.data[i+1] = Math.min(255, g);
+      img.data[i+2] = Math.min(255, b);
+      img.data[i+3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  requestAnimationFrame(draw2d);
+}
+
+(async () => {
+  await pollState();
+  setInterval(pollState, 500);
+  try {
+    await initWebGPU();
+    requestAnimationFrame(draw);
+  } catch (e) {
+    console.warn('WebGPU fallback to Canvas2D', e);
+    requestAnimationFrame(draw2d);
+  }
+})();
+</script>
+</body>
+</html>

@@ -48,3 +48,5 @@ mirage-workspace/.venv/
 mirage-workspace/diskroot/
 mirage-workspace/.mirage/
 __pycache__/
+node_modules/
+.openclaw/agents/*/sessions/
