@@ -54,13 +54,20 @@ class TestEigenProjection(unittest.TestCase):
 
 class TestCrystalScore(unittest.TestCase):
     def test_pass_high_score(self):
-        cs = compute_crystal_score(True, 0.05, 0.95, target=0.85)
+        cs = compute_crystal_score(True, 0.92, 0.95, target=0.85)
         self.assertTrue(cs["passed"])
         self.assertGreaterEqual(cs["value"], 0.85)
 
     def test_fail_low_loopback(self):
-        cs = compute_crystal_score(False, 0.05, 0.95, target=0.85)
+        cs = compute_crystal_score(False, 0.92, 0.95, target=0.85)
         self.assertFalse(cs["passed"])
+
+
+class TestEigenStability(unittest.TestCase):
+    def test_aligned_coefficients_score_high(self):
+        eigen = {"coefficients": [1.0, 0.5, 0.2], "loopback_delta_eigen": 0.1}
+        score = __import__("procedural_truth_verifier").eigen_stability_score(eigen, eigen)
+        self.assertGreater(score, 0.9)
 
 
 class TestAutomatonEmergence(unittest.TestCase):
