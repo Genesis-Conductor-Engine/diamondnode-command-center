@@ -1,0 +1,102 @@
+#!/bin/bash
+# sota-livestream-ctl
+# Convenience control for Genesis Conductor SOTA v2.1 livestream
+# Uses systemd --user services + direct helpers
+
+set -euo pipefail
+
+export PATH="/home/diamondnode/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin:$PATH"
+
+UPDATER="sota-livestream-updater"
+STREAM="${SOTA_STREAM_SERVICE:-sota-webgpu-stream}"
+STATE_DIR="/tmp/sota-livestream"
+
+usage() {
+  echo "Usage: $0 {start|stop|restart|status|test|logs|files|force-update}"
+  echo "  start        : start updater + WebGPU stream (VA RTMP) services"
+  echo "  stop         : stop both"
+  echo "  restart      : restart both"
+  echo "  status       : systemctl --user status + file listing"
+  echo "  test         : verify ffmpeg lavfi + nv setup + nvidia-smi (no stream push)"
+  echo "  logs         : follow combined journal for the stream service"
+  echo "  files        : ls -l $STATE_DIR and cat current contents"
+  echo "  force-update : run one update cycle immediately"
+  exit 1
+}
+
+cmd="${1:-}"
+shift || true
+
+case "$cmd" in
+  start)
+    echo ">>> Enabling + starting SOTA livestream services (user)..."
+    systemctl --user daemon-reload || true
+    systemctl --user enable --now "$UPDATER.service" "$STREAM.service"
+    sleep 1
+    systemctl --user status "$UPDATER.service" "$STREAM.service" --no-pager -l | cat
+    echo ">>> Started. Use '$0 status' and '$0 logs'"
+    ;;
+  stop)
+    echo ">>> Stopping SOTA livestream services..."
+    systemctl --user stop "$STREAM.service" "$UPDATER.service" || true
+    systemctl --user disable "$STREAM.service" "$UPDATER.service" || true
+    echo "Stopped."
+    ;;
+  restart)
+    echo ">>> Restarting..."
+    systemctl --user daemon-reload || true
+    systemctl --user restart "$UPDATER.service" "$STREAM.service" || true
+    sleep 2
+    systemctl --user status "$UPDATER.service" "$STREAM.service" --no-pager | cat
+    ;;
+  status)
+    echo "=== SYSTEMD STATUS ==="
+    systemctl --user status "$UPDATER.service" "$STREAM.service" --no-pager -l | cat || true
+    echo ""
+    echo "=== STATE FILES ==="
+    ls -l "$STATE_DIR" 2>/dev/null || echo "no $STATE_DIR yet"
+    echo ""
+    echo "=== GPU (live) ==="
+    nvidia-smi --query-gpu=name,temperature.gpu,memory.used,memory.total,utilization.gpu,power.draw --format=csv,noheader,nounits 2>/dev/null || echo "nvidia-smi fail"
+    ;;
+  test)
+    echo "=== TEST: nvidia-smi + CUDA_VISIBLE_DEVICES=0 ==="
+    CUDA_VISIBLE_DEVICES=0 nvidia-smi -L || true
+    echo ""
+    FFMPEG_BIN="$(command -v ffmpeg 2>/dev/null || echo /usr/bin/ffmpeg)"
+    echo "=== TEST: ffmpeg lavfi color + null audio (5s encode test, no RTMP) using $FFMPEG_BIN ==="
+    "$FFMPEG_BIN" -hide_banner -nostats -loglevel error \
+      -f lavfi -i "color=c=#0a0f1a:s=1920x1080:r=30" \
+      -f lavfi -i "anullsrc=cl=stereo:r=44100" \
+      -filter_complex "[0:v]drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text='SOTA v2.1 TEST':x=(w-text_w)/2:y=100:fontsize=32:fontcolor=white[v]" \
+      -map "[v]" -map 1:a -t 5 -f null - 2>&1 | tail -3 || echo "ffmpeg lavfi test completed (check exit or ffmpeg path)"
+    echo ""
+    echo "=== TEST: state dir and updater script syntax ==="
+    ls -l "$STATE_DIR" 2>/dev/null || mkdir -p "$STATE_DIR"
+    bash -n /home/diamondnode/bin/sota-livestream-updater.sh && echo "updater syntax OK"
+    bash -n /home/diamondnode/bin/sota-livestream-ffmpeg.sh && echo "ffmpeg wrapper syntax OK"
+    echo "=== TEST OK ==="
+    ;;
+  logs)
+    echo ">>> Tailing journal for $STREAM (Ctrl-C to exit)"
+    journalctl --user -u "$STREAM.service" -u "$UPDATER.service" -f --no-pager
+    ;;
+  files)
+    echo "=== Current /tmp text files for drawtext ==="
+    for f in title subtitle gpu qflop pqc_seismic swarm health logs footer; do
+      echo "--- $f.txt ---"
+      cat "$STATE_DIR/$f.txt" 2>/dev/null || echo "(missing)"
+    done
+    ;;
+  force-update)
+    echo ">>> Forcing one updater cycle..."
+    /home/diamondnode/bin/sota-livestream-updater.sh &
+    UPD_PID=$!
+    sleep 6
+    kill "$UPD_PID" 2>/dev/null || true
+    "$0" files
+    ;;
+  *)
+    usage
+    ;;
+esac

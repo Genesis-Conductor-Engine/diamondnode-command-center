@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# mirage-claude - launch Claude Code inside a Mirage virtual filesystem.
+# Backends mount automatically when their tokens are present in ~/.env
+# (NOTION_TOKEN -> /notion, GITHUB_TOKEN/GH_TOKEN -> /github). Disk root always mounts.
+set -euo pipefail
+set -a; source "$HOME/.env" 2>/dev/null || true; set +a
+cd "$HOME/mirage-workspace"
+exec uv run python mirage_claude.py "$@"

@@ -1,0 +1,8 @@
+[project]
+name = "mirage-workspace"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "mirage-ai[fuse]>=0.0.2",
+]

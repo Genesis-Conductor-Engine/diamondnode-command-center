@@ -1,0 +1,17 @@
+{
+  "name": "thermo-workflow",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "nitro dev",
+    "build": "nitro build",
+    "epoch": "curl -s -X POST http://localhost:3010/api/thermo-epoch -H 'Content-Type: application/json' -d '{\"variant\":\"chr17:41234470:A>G\"}'"
+  },
+  "dependencies": {
+    "hono": "^4.7.0",
+    "nitro": "latest",
+    "rollup": "^4.0.0",
+    "workflow": "latest"
+  }
+}

@@ -1,0 +1,64 @@
+name: OpenClaw Handoff Pipeline
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'gc-workers/diamondnode-integration/handoffs/inbox/**'
+      - '.openclaw/**'
+  repository_dispatch:
+    types: [openclaw_handoff, immesaage_directive]
+  workflow_dispatch:
+    inputs:
+      directive:
+        description: 'Directive JSON payload'
+        required: false
+
+jobs:
+  process-handoff:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: gc-workers/diamondnode-integration
+
+      - name: Process OpenClaw Handoff
+        run: |
+          cd gc-workers/diamondnode-integration
+          node lib/materializer.js --source ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.directive || '' }}
+        env:
+          OPENCLAW_ENDPOINT: https://notion-bridge.iholt.workers.dev/claw/openclaw
+          KIMICLAW_ENDPOINT: https://notion-bridge.iholt.workers.dev/claw/kimi
+          HANDOFF_DIR: ${{ github.workspace }}/gc-workers/diamondnode-integration/handoffs/inbox
+
+  notify-complete:
+    needs: process-handoff
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Completion
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const payload = {
+              status: 'complete',
+              timestamp: new Date().toISOString(),
+              workflow: context.workflow,
+              run_id: context.runId
+            };
+            await fetch(process.env.OPENCLAW_ENDPOINT, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+        env:
+          OPENCLAW_ENDPOINT: https://notion-bridge.iholt.workers.dev/claw/openclaw

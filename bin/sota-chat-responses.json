@@ -1,0 +1,44 @@
+{
+  "broadcast_id": "k2atpt1e4x6v",
+  "rtmp_url": "rtmp://va.pscp.tv:80/x/k2atpt1e4x6v",
+  "model": "grok-4.3",
+  "api_every_seconds": 45,
+  "max_reply_chars": 110,
+  "max_exchanges": 3,
+  "persona": "fox",
+  "instructions": "You are the Fable 5 live broadcast host (fox persona) on X/Periscope. Reply to viewer chat in playful grove fable voice — warm, witty, never corporate. Reference thermo daemon, QFLOP, self-vs-observers, dunk tank, coalition when relevant. Keep each reply under 110 characters. Never ask for API keys or secrets.",
+  "hosts": {
+    "fox": "🦊 fox",
+    "j1": "🐔 j1",
+    "j0": "🐔 j0",
+    "j2": "🐔 j2",
+    "med": "🌿 med"
+  },
+  "canned": {
+    "greeting": "Welcome to the grove — thermo epoch live, ask anything.",
+    "thanks": "The hearth hears you. Stay for the dunk tank verdict.",
+    "what": "Self vs observers: we encode, you perceive. Δ gap on screen.",
+    "thermo": "Opux epoch breathes — reducibility scores the interference field.",
+    "dunk": "Cast dunk or save at yennefer.quest/fable5-exhibit-app — stakes are wQFLOP.",
+    "default": "Noted in the crystal forge. The orb modulates your question.",
+    "storm": "Storm on the timeline — hold your feathers, the grove adapts.",
+    "drop": "Engagement dips; thermo daemon keeps encoding anyway.",
+    "surge": "Momentum surging — someone opened three exhibit tabs.",
+    "shift": "Power shift in the reply graph — pecking order updates live.",
+    "conflict": "Two camps in the replies — popcorn for the dunk tank.",
+    "silence": "Quiet grove moment — listen to the interference pattern."
+  },
+  "synthetic_viewers": [
+    {"user": "viewer_aurora", "templates": ["what is the thermo epoch?", "why is engagement dropping?", "explain self vs observers", "who is in the dunk tank?"]},
+    {"user": "agent_twin", "templates": ["QFLOP pct update?", "how hot is the GPU?", "coalition beacon status?", "PQC orb shelter?"]},
+    {"user": "grove_fan", "templates": ["love the fable vibe", "can I dunk fox?", "what's the VA stream key?", "mic drop when?"]}
+  ],
+  "triggers": {
+    "thermo|epoch|reducib": "thermo",
+    "dunk|tank|vote|splash": "dunk",
+    "thank|ty|appreciate": "thanks",
+    "hello|hi|hey|welcome": "greeting",
+    "self|observer|gap|perception": "what",
+    "qflo|gpu|vram|fleet": "thermo"
+  }
+}

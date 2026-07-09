@@ -1,0 +1,87 @@
+{
+  "version": "1.0.0",
+  "organizing_principle": "Yennefer Thermo Daemon",
+  "three_goals": {
+    "main": {
+      "id": "goal_1_galaxy",
+      "title": "Guide to the Galaxy — Thermodynamic Information Reducibility",
+      "role": "primary_navigator",
+      "description": "Eternal Landauer-bounded thermodynamic informant: GPU H(s) → variant variance → diamond spectrum → HyperNEAT epoch → .sol attestation. Reduces high-entropy biological/VRAM state to irreducible frequency witnesses on-chain.",
+      "hamiltonian": "H(s) = (VRAM_used/VRAM_total)×10 + β×(T_gpu/T_max)",
+      "offload_threshold": 8.5,
+      "endpoints": ["/state", "/epoch", "/attestation/latest"]
+    },
+    "milestone_2": {
+      "id": "goal_2_fleet",
+      "title": "MCP Fleet Coordination",
+      "role": "inevitable_milestone",
+      "description": "Hermes + OpenClaw + gc-mcp-beta propagate epoch witnesses, Alchemy story logs, and device-attested wraps across the DiamondNode fleet.",
+      "tools": ["gc-mcp-beta:memory_write", "propagate_to_claws", "alchemy_story_log"]
+    },
+    "milestone_3": {
+      "id": "goal_3_onchain",
+      "title": "Notion Soul-Capsule + On-Chain Wrap Attestation",
+      "role": "inevitable_milestone",
+      "description": "diamondvault-notion-worker polls soul-capsule DB 21e416066ef1411084d1bbaf67af79d1; ThermoInformationAttestation.sol seals epoch work on Base/Polygon wraps with exact on-device encryption proofs.",
+      "contracts": ["ThermoInformationAttestation"],
+      "chains": ["base", "polygon"]
+    }
+  },
+  "first_principles": {
+    "harmonic_orthogonal_topology": "Eigenvector planes from QUBO H decomposed into orthogonal eigenspaces; Pareto reannealment selects non-dominated frequency bases.",
+    "diamond_reflection_refraction": "Variance σ² from AlphaGenome quantile scores maps to reflection (incident) and refraction (transmitted) frequency pairs via Snell-like diamond dispersion.",
+    "pareto_reannealment": "HyperNEAT CPPN weights reannealed only on Pareto frontier of {reducibility, orthogonality_error, landauer_efficiency}."
+  },
+  "nodes": [
+    {
+      "id": "thermo-nvml",
+      "type": "sensor",
+      "source": "thermodynamic-daemon:9100",
+      "outputs": ["temperature_c", "vram_used_pct", "governor_envelope"]
+    },
+    {
+      "id": "alphagenome-variance",
+      "type": "oracle",
+      "source": "alphagenome-single-variant-analysis",
+      "outputs": ["quantile_score_variance", "top_hits", "variant_id"]
+    },
+    {
+      "id": "opux-hyperneat",
+      "type": "evolver",
+      "source": "evolutionary_epoch.py",
+      "substrate": "JAX/HyperNEAT",
+      "outputs": ["epoch_id", "pareto_frontier", "field_points"]
+    },
+    {
+      "id": "diamond-spectrum",
+      "type": "transform",
+      "source": "diamond_spectrum.py",
+      "outputs": ["reflection_hz", "refraction_hz", "dispersion_index"]
+    },
+    {
+      "id": "alchemy-story",
+      "type": "logger",
+      "source": "alchemy_story_logger.py",
+      "outputs": ["story_root", "wrap_tx_refs", "device_attestation_hash"]
+    },
+    {
+      "id": "sol-attestation",
+      "type": "anchor",
+      "source": "ThermoInformationAttestation.sol",
+      "outputs": ["work_hash", "reducibility_score", "epoch_sealed"]
+    },
+    {
+      "id": "ag15-openfda-substrate",
+      "type": "authority_research",
+      "codename": "AG15",
+      "title": "Thermodynamic Transistor Substrate — openFDA + Hermes",
+      "source": "ag15_openfda_research.py",
+      "skill": "openfda-database",
+      "swarm": "diamondnodebot_ag15_hermes",
+      "verification": "ag15_double_loop_verifier.py",
+      "authority_tier": "post_phd_double_loop",
+      "endpoints": ["/ag15/research", "/ag15/verification", "/hermes/simulation", "/ag15/verify/run"],
+      "outputs": ["fda_evidence_cards", "falsification_summary", "authority_pass", "composite_score"]
+    }
+  ]
+}
