@@ -50,3 +50,32 @@ mirage-workspace/.mirage/
 __pycache__/
 node_modules/
 .openclaw/agents/*/sessions/
+
+# Package manager / tool caches & installs (added 2026-07-16)
+.local/
+.npm/
+.npm-global/
+node_modules/
+venv*/
+.venv/
+*.venv/
+
+# Large runtime data (added 2026-07-16)
+.genesis/
+
+# ML tool caches (added 2026-07-16)
+.xinference/
+.lmstudio/
+.hermes/
+.grok/
+.gemini/
+
+# Shell history - sensitive (added 2026-07-16)
+.bash_history
+.bash_history.*
+.zsh_history
+
+# Backup/broken script artifacts (added 2026-07-16)
+*.bak
+*.bak.*
+bin/sota-rtmp.env
