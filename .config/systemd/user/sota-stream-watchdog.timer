@@ -1,0 +1,11 @@
+[Unit]
+Description=Probe SOTA stream encoder progress every 30 seconds
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=30s
+AccuracySec=1s
+Unit=sota-stream-watchdog.service
+
+[Install]
+WantedBy=timers.target

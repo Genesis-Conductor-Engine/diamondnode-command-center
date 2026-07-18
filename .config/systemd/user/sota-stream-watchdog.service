@@ -1,0 +1,14 @@
+[Unit]
+Description=Credential-blind SOTA stream encoder progress watchdog
+After=sota-webgpu-stream.service
+
+[Service]
+Type=oneshot
+ExecStart=/home/diamondnode/venv312/bin/python /home/diamondnode/bin/sota-stream-watchdog.py --service sota-webgpu-stream.service --state-file /tmp/sota-livestream/watchdog.json --restart-on-stall
+NoNewPrivileges=yes
+PrivateDevices=yes
+ProtectSystem=full
+ProtectHome=read-only
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
