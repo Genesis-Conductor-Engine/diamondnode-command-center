@@ -206,6 +206,51 @@ class PublicChatProjectionTests(unittest.TestCase):
         self.assertEqual(projected["lines"], "safe overlay line")
         self.assertEqual(projected["count"], 4)
 
+    def test_withholds_expanded_credential_labels_and_ingest_schemes(self):
+        cases = {
+            "api_key_assignment": 'api_key="dummy-api-key"',
+            "access_key_assignment": "ACCESS-KEY=dummy-access-key",
+            "private_key_assignment": "private key: dummy-private-key",
+            "secret_key_assignment": "secretKey=dummy-secret-key",
+            "stream_key_assignment": "streamKey=dummy-stream-key",
+            "password_assignment": "password=dummy-password",
+            "passphrase_assignment": "passphrase: dummy-passphrase",
+            "authorization_basic": "Authorization: Basic ZHVtbXk=",
+            "authorization_bearer": "authorization=Bearer dummy-token",
+            "auth_basic": "auth: Basic ZHVtbXk=",
+            "auth_bearer": "AUTH=Bearer dummy-token",
+            "credential_label": "credential: dummy-value",
+            "credentials_label": "credentials=dummy-value",
+            "rtmp_ingest": "rtmp://stream.invalid/live/dummy",
+            "rtmps_ingest": "rtmps://stream.invalid/live/dummy",
+            "srt_ingest": "srt://stream.invalid:9000?streamid=dummy",
+            "rist_ingest": "rist://stream.invalid:9000/dummy",
+        }
+
+        for case, value in cases.items():
+            with self.subTest(case=case):
+                self.assertTrue(MODULE.public_chat_text(value, 280) == WITHHELD)
+
+    def test_preserves_safe_ordinary_sentences_about_security_and_transports(self):
+        safe_sentences = {
+            "api_keys": "API keys are rotated during maintenance windows.",
+            "access_keys": "Access keys are an authentication concept.",
+            "private_keys": "Private keys should remain private.",
+            "secret_keys": "Secret keys should not appear in public chat.",
+            "passwords": "Password managers improve account safety.",
+            "passphrases": "Choose a memorable passphrase without sharing it.",
+            "authorization": "Authorization uses standard schemes.",
+            "basic_auth": "Basic authentication is described in the manual.",
+            "bearer_auth": "Bearer authentication is a protocol concept.",
+            "credentials": "Credentials belong in a secure manager.",
+            "transports": "SRT and RIST are transport protocols.",
+            "stream_wording": "The live stream is the key part of the demo.",
+        }
+
+        for case, value in safe_sentences.items():
+            with self.subTest(case=case):
+                self.assertTrue(MODULE.public_chat_text(value, 280) == value)
+
 
 if __name__ == "__main__":
     unittest.main()

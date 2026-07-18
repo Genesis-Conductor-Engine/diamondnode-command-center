@@ -26,9 +26,27 @@ PUBLIC_CHAT_FIELD_LIMITS = {
     "source": 64,
 }
 SENSITIVE_CHAT_PATTERN = re.compile(
-    r"(?:\bstream[\s_-]+key\b|rtmps?://|\bbearer(?:\s+|\s*[:=]\s*)\S+|"
-    r"(?:^|[^a-z0-9])[\"']?[\w.-]*(?:token|secret)[\w.-]*[\"']?\s*[:=]\s*\S+)",
-    re.IGNORECASE,
+    r"""
+    (?:
+        \bstream[\s_-]+key\b
+      | \b(?:rtmps?|srt|rist)://
+      | \bbearer(?:\s*[:=]\s*|\s+)
+        (?!(?:are|is|was|were|can|uses?|means?|authentication|authorization|
+             tokens?|schemes?|credentials?|headers?|formats?)\b)\S+
+      | \b(?:authorization|auth)\b[\"']?\s*[:=]\s*[\"']?
+        (?:bearer|basic)\s+\S+
+      | (?:^|[^a-z0-9])[\"']?
+        (?:
+            (?:api|access|private|secret|stream)[\s_-]*key
+          | passwords?
+          | passphrases?
+          | credentials?
+          | [a-z0-9_.-]*(?:token|secret)[a-z0-9_.-]*
+        )
+        [\"']?\s*[:=]\s*[\"']?\S+
+    )
+    """,
+    re.IGNORECASE | re.VERBOSE,
 )
 
 UNAVAILABLE_INFERENCE = {
