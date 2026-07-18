@@ -257,10 +257,12 @@ class SystemctlSource:
             return
 
 
-def parse_ss_cgroup_output(output: str, control_group: str) -> dict[str, int]:
+def parse_ss_cgroup_output(
+    output: str, control_group: str
+) -> dict[str, int] | None:
     """Reduce only exact-cgroup socket records to numeric progress counters."""
     if CONTROL_GROUP_PATTERN.fullmatch(control_group) is None:
-        return {}
+        return None
     expected_token = f"cgroup:{control_group}"
     counters: dict[str, int] = {}
     for line in output.splitlines():
@@ -269,7 +271,7 @@ def parse_ss_cgroup_output(output: str, control_group: str) -> dict[str, int]:
         inode_match = INODE_PATTERN.search(line)
         bytes_match = BYTES_SENT_PATTERN.search(line)
         if inode_match is None or bytes_match is None:
-            continue
+            return None
         inode = inode_match.group(1)
         bytes_sent = int(bytes_match.group(1))
         counters[inode] = max(counters.get(inode, 0), bytes_sent)
@@ -332,7 +334,7 @@ def evaluate_state(
             socket_counters=(
                 dict(previous.socket_counters) if same_process else {}
             ),
-            consecutive_no_progress=(previous_strikes if same_process else 0),
+            consecutive_no_progress=0,
             status="unavailable",
         )
         return Evaluation(state=state, restart_required=False, exit_code=0)

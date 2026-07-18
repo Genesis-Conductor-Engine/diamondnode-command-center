@@ -124,6 +124,22 @@ class WatchdogTestCase(unittest.TestCase):
         self.assertEqual(state["status"], "unavailable")
         self.assertEqual(self.systemctl.restarted_services, [])
 
+    def test_unavailable_measurement_breaks_consecutive_stall_evidence(self) -> None:
+        self.assertEqual(self._probe(), 0)  # baseline
+        self.assertEqual(self._probe(), 0)  # strike one
+        self.assertEqual(self._probe(), 0)  # strike two
+        self.sockets.counters = None
+
+        self.assertEqual(self._probe(), 0)
+        self.assertEqual(self._state_json()["consecutive_no_progress"], 0)
+
+        self.sockets.counters = {"7001": 100}
+        self.assertEqual(self._probe(), 0)
+        self.assertEqual(self._probe(), 0)
+        self.assertEqual(self.systemctl.restarted_services, [])
+        self.assertEqual(self._probe(), 1)
+        self.assertEqual(self.systemctl.restarted_services, [self.service_name])
+
     def test_third_consecutive_failure_restarts_fake_service_and_exits_nonzero(self) -> None:
         self.assertEqual(self._probe(), 0)  # establish the first counter baseline
         self.assertEqual(self._probe(), 0)
@@ -212,6 +228,14 @@ class WatchdogTestCase(unittest.TestCase):
 
         self.assertEqual(counters, {"7001": 321})
         self.assertNotIn("must-not-escape", repr(counters))
+
+    def test_partial_target_counter_metadata_is_unavailable(self) -> None:
+        target = "/user.slice/user-1000.slice/app.slice/fake-encoder.service"
+        missing_bytes = f"ESTAB local remote cgroup:{target} ino:7001\n"
+        missing_inode = f"ESTAB local remote cgroup:{target} bytes_sent:321\n"
+
+        self.assertIsNone(watchdog.parse_ss_cgroup_output(missing_bytes, target))
+        self.assertIsNone(watchdog.parse_ss_cgroup_output(missing_inode, target))
 
     def test_socket_probe_uses_cgroup_metadata_without_pid_ownership(self) -> None:
         target = "/user.slice/user-1000.slice/app.slice/fake-encoder.service"
