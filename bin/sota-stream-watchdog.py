@@ -28,11 +28,11 @@ STATE_KEYS = {
     "consecutive_no_progress",
     "status",
 }
-VALID_STATUSES = {"baseline", "healthy", "waiting", "stalled"}
+VALID_STATUSES = {"baseline", "healthy", "waiting", "stalled", "unavailable"}
 SERVICE_NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.@:-]*\.service$")
-PID_PATTERN = re.compile(r"\bpid=(\d+)\b")
 INODE_PATTERN = re.compile(r"\bino:(\d+)\b")
 BYTES_SENT_PATTERN = re.compile(r"\bbytes_sent:(\d+)\b")
+CONTROL_GROUP_PATTERN = re.compile(r"^/[A-Za-z0-9_.@:/\\-]{1,4095}$")
 MINIMAL_ENV = {"PATH": "/usr/bin:/bin", "LANG": "C", "LC_ALL": "C"}
 
 
@@ -40,6 +40,7 @@ MINIMAL_ENV = {"PATH": "/usr/bin:/bin", "LANG": "C", "LC_ALL": "C"}
 class ServiceSnapshot:
     pid: int
     active: bool
+    control_group: str = ""
 
 
 @dataclass(frozen=True)
@@ -186,6 +187,7 @@ def systemctl_show_command(service_name: str) -> list[str]:
         "--no-pager",
         "--property=MainPID",
         "--property=ActiveState",
+        "--property=ControlGroup",
         service_name,
     ]
 
@@ -199,14 +201,20 @@ def _parse_systemctl_show(output: str) -> ServiceSnapshot:
     safe_values: dict[str, str] = {}
     for line in output.splitlines():
         key, separator, value = line.partition("=")
-        if separator and key in {"MainPID", "ActiveState"}:
+        if separator and key in {"MainPID", "ActiveState", "ControlGroup"}:
             safe_values[key] = value.strip()
     try:
         pid = int(safe_values.get("MainPID", "0"))
     except ValueError:
         pid = 0
     return ServiceSnapshot(
-        pid=max(pid, 0), active=safe_values.get("ActiveState") == "active"
+        pid=max(pid, 0),
+        active=safe_values.get("ActiveState") == "active",
+        control_group=(
+            safe_values.get("ControlGroup", "")
+            if CONTROL_GROUP_PATTERN.fullmatch(safe_values.get("ControlGroup", ""))
+            else ""
+        ),
     )
 
 
@@ -249,11 +257,14 @@ class SystemctlSource:
             return
 
 
-def parse_ss_output(output: str, pid: int) -> dict[str, int]:
-    """Reduce transient ss output to numeric counters without retaining endpoints."""
+def parse_ss_cgroup_output(output: str, control_group: str) -> dict[str, int]:
+    """Reduce only exact-cgroup socket records to numeric progress counters."""
+    if CONTROL_GROUP_PATTERN.fullmatch(control_group) is None:
+        return {}
+    expected_token = f"cgroup:{control_group}"
     counters: dict[str, int] = {}
     for line in output.splitlines():
-        if pid not in {int(match) for match in PID_PATTERN.findall(line)}:
+        if expected_token not in line.split():
             continue
         inode_match = INODE_PATTERN.search(line)
         bytes_match = BYTES_SENT_PATTERN.search(line)
@@ -268,12 +279,12 @@ def parse_ss_output(output: str, pid: int) -> dict[str, int]:
 class SocketProgressSource:
     """Internally reduces ss TCP_INFO data to inode/bytes_sent integers."""
 
-    def counters_for_pid(self, pid: int) -> dict[str, int]:
-        if type(pid) is not int or pid <= 0:
-            return {}
+    def counters_for_cgroup(self, control_group: str) -> dict[str, int] | None:
+        if CONTROL_GROUP_PATTERN.fullmatch(control_group) is None:
+            return None
         try:
             result = subprocess.run(
-                ["ss", "-tinpeOH"],
+                ["ss", "--cgroup", "-tinoeOH"],
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,
@@ -285,10 +296,10 @@ class SocketProgressSource:
                 check=False,
             )
         except (OSError, subprocess.SubprocessError):
-            return {}
+            return None
         if result.returncode != 0:
-            return {}
-        return parse_ss_output(result.stdout, pid)
+            return None
+        return parse_ss_cgroup_output(result.stdout, control_group)
 
 
 def _has_progress(
@@ -304,13 +315,29 @@ def evaluate_state(
     previous: WatchdogState | None,
     snapshot: ServiceSnapshot,
     process_alive: bool,
-    socket_counters: Mapping[str, int],
+    socket_counters: Mapping[str, int] | None,
     sampled_at_unix: int,
 ) -> Evaluation:
     """Pure state transition: require three same-PID no-progress samples."""
     usable = snapshot.active and snapshot.pid > 0 and process_alive
-    counters = dict(socket_counters) if usable else {}
     previous_strikes = previous.consecutive_no_progress if previous else 0
+
+    if usable and socket_counters is None:
+        same_process = previous is not None and previous.pid == snapshot.pid
+        state = WatchdogState(
+            version=STATE_VERSION,
+            sampled_at_unix=int(sampled_at_unix),
+            pid=snapshot.pid,
+            active=True,
+            socket_counters=(
+                dict(previous.socket_counters) if same_process else {}
+            ),
+            consecutive_no_progress=(previous_strikes if same_process else 0),
+            status="unavailable",
+        )
+        return Evaluation(state=state, restart_required=False, exit_code=0)
+
+    counters = dict(socket_counters) if usable else {}
 
     if previous is None:
         strikes = 0 if usable else 1
@@ -359,7 +386,9 @@ def run_watchdog(
     snapshot = service_source.snapshot(service_name)
     process_alive = proc_source.is_alive(snapshot.pid)
     counters = (
-        socket_source.counters_for_pid(snapshot.pid) if process_alive else {}
+        socket_source.counters_for_cgroup(snapshot.control_group)
+        if process_alive
+        else {}
     )
     evaluation = evaluate_state(
         previous,

@@ -24,25 +24,32 @@ class FakeSystemctlSource:
     def __init__(self, pid: int, active: bool = True) -> None:
         self.pid = pid
         self.active = active
+        self.control_group = (
+            "/user.slice/user-1000.slice/app.slice/fake-encoder.service"
+        )
         self.probed_services: list[str] = []
         self.restarted_services: list[str] = []
 
     def snapshot(self, service_name: str):
         self.probed_services.append(service_name)
-        return watchdog.ServiceSnapshot(pid=self.pid, active=self.active)
+        return watchdog.ServiceSnapshot(
+            pid=self.pid,
+            active=self.active,
+            control_group=self.control_group,
+        )
 
     def restart(self, service_name: str) -> None:
         self.restarted_services.append(service_name)
 
 
 class FakeSocketProgressSource:
-    def __init__(self, counters: dict[str, int]) -> None:
+    def __init__(self, counters: dict[str, int] | None) -> None:
         self.counters = counters
-        self.probed_pids: list[int] = []
+        self.probed_control_groups: list[str] = []
 
-    def counters_for_pid(self, pid: int) -> dict[str, int]:
-        self.probed_pids.append(pid)
-        return dict(self.counters)
+    def counters_for_cgroup(self, control_group: str) -> dict[str, int] | None:
+        self.probed_control_groups.append(control_group)
+        return None if self.counters is None else dict(self.counters)
 
 
 class WatchdogTestCase(unittest.TestCase):
@@ -103,6 +110,18 @@ class WatchdogTestCase(unittest.TestCase):
 
         self.assertEqual(self._state_json()["consecutive_no_progress"], 1)
         self.assertEqual(self._state_json()["status"], "waiting")
+        self.assertEqual(self.systemctl.restarted_services, [])
+
+    def test_unavailable_socket_measurement_never_counts_as_a_stall(self) -> None:
+        self.assertEqual(self._probe(), 0)
+        self.sockets.counters = None
+
+        for _ in range(5):
+            self.assertEqual(self._probe(), 0)
+
+        state = self._state_json()
+        self.assertEqual(state["consecutive_no_progress"], 0)
+        self.assertEqual(state["status"], "unavailable")
         self.assertEqual(self.systemctl.restarted_services, [])
 
     def test_third_consecutive_failure_restarts_fake_service_and_exits_nonzero(self) -> None:
@@ -180,19 +199,51 @@ class WatchdogTestCase(unittest.TestCase):
         )
         self.assertFalse(self.proc.is_alive(41001))
 
-    def test_ss_parser_returns_only_inode_byte_counters(self) -> None:
+    def test_cgroup_parser_requires_an_exact_service_cgroup(self) -> None:
+        target = "/user.slice/user-1000.slice/app.slice/fake-encoder.service"
         raw = (
-            'ESTAB 0 0 local:123 remote.example:443 users:(("encoder",pid=41001,fd=9)) '
-            'ino:7001 sk:1 bytes_sent:321 credential=must-not-escape\n'
-            'ESTAB 0 0 local:124 other.example:443 users:(("other",pid=99999,fd=8)) '
-            'ino:8001 sk:2 bytes_sent:654\n'
+            "ESTAB local remote "
+            f"cgroup:{target} ino:7001 bytes_sent:321 sealed=must-not-escape\n"
+            "ESTAB local remote "
+            f"cgroup:{target}-shadow ino:8001 bytes_sent:654\n"
         )
 
-        counters = watchdog.parse_ss_output(raw, 41001)
+        counters = watchdog.parse_ss_cgroup_output(raw, target)
 
         self.assertEqual(counters, {"7001": 321})
-        self.assertNotIn("remote.example", repr(counters))
         self.assertNotIn("must-not-escape", repr(counters))
+
+    def test_socket_probe_uses_cgroup_metadata_without_pid_ownership(self) -> None:
+        target = "/user.slice/user-1000.slice/app.slice/fake-encoder.service"
+        calls: list[tuple[list[str], dict]] = []
+
+        class Result:
+            returncode = 0
+            stdout = f"ESTAB local remote ino:7001 cgroup:{target} bytes_sent:321\n"
+
+        def run(command, **kwargs):
+            calls.append((command, kwargs))
+            return Result()
+
+        with patch.object(watchdog.subprocess, "run", side_effect=run):
+            counters = watchdog.SocketProgressSource().counters_for_cgroup(target)
+
+        self.assertEqual(counters, {"7001": 321})
+        self.assertEqual(calls[0][0], ["ss", "--cgroup", "-tinoeOH"])
+        self.assertNotIn("-p", calls[0][0])
+        self.assertEqual(calls[0][1]["env"], watchdog.MINIMAL_ENV)
+
+    def test_socket_probe_failure_is_reported_as_unavailable(self) -> None:
+        target = "/user.slice/user-1000.slice/app.slice/fake-encoder.service"
+
+        class Result:
+            returncode = 1
+            stdout = ""
+
+        with patch.object(watchdog.subprocess, "run", return_value=Result()):
+            counters = watchdog.SocketProgressSource().counters_for_cgroup(target)
+
+        self.assertIsNone(counters)
 
     def test_systemctl_show_command_requests_only_safe_properties(self) -> None:
         command = watchdog.systemctl_show_command(self.service_name)
@@ -206,6 +257,7 @@ class WatchdogTestCase(unittest.TestCase):
                 "--no-pager",
                 "--property=MainPID",
                 "--property=ActiveState",
+                "--property=ControlGroup",
                 self.service_name,
             ],
         )
@@ -217,7 +269,12 @@ class WatchdogTestCase(unittest.TestCase):
 
         class Result:
             returncode = 0
-            stdout = "MainPID=41001\nActiveState=active\n"
+            stdout = (
+                "MainPID=41001\n"
+                "ActiveState=active\n"
+                "ControlGroup=/user.slice/user-1000.slice/app.slice/"
+                "fake-encoder.service\n"
+            )
 
         def run(*args, **kwargs):
             calls.append(kwargs)
@@ -230,7 +287,14 @@ class WatchdogTestCase(unittest.TestCase):
             source = watchdog.SystemctlSource()
             self.assertEqual(
                 source.snapshot(self.service_name),
-                watchdog.ServiceSnapshot(pid=41001, active=True),
+                watchdog.ServiceSnapshot(
+                    pid=41001,
+                    active=True,
+                    control_group=(
+                        "/user.slice/user-1000.slice/app.slice/"
+                        "fake-encoder.service"
+                    ),
+                ),
             )
             source.restart(self.service_name)
 
@@ -255,6 +319,16 @@ class UnitFileTestCase(unittest.TestCase):
         self.assertIn("--restart-on-stall", service)
         self.assertNotIn("ExecStartPost", service)
         self.assertNotIn("EnvironmentFile", service)
+        for hardening in (
+            "NoNewPrivileges=yes",
+            "PrivateDevices=yes",
+            "ProtectSystem=full",
+            "ProtectHome=read-only",
+            "RestrictAddressFamilies=AF_UNIX AF_NETLINK",
+            "LockPersonality=yes",
+            "MemoryDenyWriteExecute=yes",
+        ):
+            self.assertIn(hardening, service)
 
     def test_timer_runs_every_thirty_seconds(self) -> None:
         timer = (self.unit_dir / "sota-stream-watchdog.timer").read_text(
