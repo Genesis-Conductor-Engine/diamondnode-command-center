@@ -3,12 +3,78 @@
 from __future__ import annotations
 
 import json
+import math
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
 OUT = Path("/tmp/sota-livestream/self-observer-state.json")
 STATE_DIR = Path("/tmp/sota-livestream")
+INFERENCE_STATE = Path("/home/diamondnode/diamond-node/state/thrml_ebm_state.json")
+FRESHNESS_LIMIT_S = 6 * 60 * 60
+MAX_SAMPLES_PER_S = 1_000_000
+MAX_ABS_ENERGY = 1_000_000
+ALLOWED_ENGINES = {"thrml-0.1.3/jax-gpu"}
+
+UNAVAILABLE_INFERENCE = {
+    "status": "unavailable",
+    "engine": None,
+    "age_s": None,
+    "gate": None,
+    "samples_per_s": None,
+    "min_energy": None,
+}
+
+
+def read_inference_state(path: Path, now: float) -> dict:
+    """Return bounded, credential-blind inference state for the public HUD."""
+    try:
+        raw = json.loads(Path(path).read_text())
+        if not isinstance(raw, dict) or raw.get("ok") is not True:
+            return UNAVAILABLE_INFERENCE.copy()
+
+        timestamp = raw.get("ts")
+        gate = raw.get("energy_gate")
+        result = raw.get("result")
+        if (
+            not _bounded_number(timestamp, 0, now)
+            or not isinstance(gate, dict)
+            or not isinstance(gate.get("gpu_ok"), bool)
+            or not isinstance(result, dict)
+        ):
+            return UNAVAILABLE_INFERENCE.copy()
+
+        engine = result.get("engine")
+        samples_per_s = result.get("samples_per_s")
+        min_energy = result.get("min_energy")
+        if (
+            engine not in ALLOWED_ENGINES
+            or not _bounded_number(samples_per_s, 0, MAX_SAMPLES_PER_S)
+            or not _bounded_number(min_energy, -MAX_ABS_ENERGY, MAX_ABS_ENERGY)
+        ):
+            return UNAVAILABLE_INFERENCE.copy()
+
+        age = now - timestamp
+        age_s = int(age)
+        return {
+            "status": "fresh" if age <= FRESHNESS_LIMIT_S else "stale",
+            "engine": engine,
+            "age_s": age_s,
+            "gate": "open" if gate["gpu_ok"] else "closed",
+            "samples_per_s": samples_per_s,
+            "min_energy": min_energy,
+        }
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return UNAVAILABLE_INFERENCE.copy()
+
+
+def _bounded_number(value: object, lower: float, upper: float) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+        and lower <= value <= upper
+    )
 
 
 def read_txt(name: str, default: str = "") -> str:
@@ -60,6 +126,7 @@ def main():
             pass
 
     viewers = read_txt("live-viewers.txt", "0")
+    inference = read_inference_state(INFERENCE_STATE, datetime.now(timezone.utc).timestamp())
     signal = intent.get("signal", read_txt("exhibit-status.txt", "silence").split("intent:")[-1].strip()[:20])
     occupant = read_txt("exhibit-who.txt", "—")
     verdict = read_txt("exhibit-intent-lab.txt", "—")
@@ -93,7 +160,7 @@ def main():
             "occupant": occupant,
             "verdict": verdict[:60],
             "perceived_signal": read_txt("exhibit-grok-out.txt", "—").split("\n")[0][:80],
-            "broadcast": "VA RTMP k2atpt1e4x6v · live encoder",
+            "broadcast": "VA RTMP [credential sealed] · live encoder",
             "x_source": x_pulse.get("source", "—"),
             "x_posts": x_pulse.get("post_count", 0),
             "x_likes": x_agg.get("like_count", 0),
@@ -115,6 +182,7 @@ def main():
             "exchanges": recent,
             "lines": read_txt("chat-response-latest.txt", "—")[:120],
         },
+        "inference": inference,
         "x_pulse": x_pulse,
         "viewer_intents": viewer_intents,
     }

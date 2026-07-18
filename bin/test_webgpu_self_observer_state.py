@@ -1,0 +1,149 @@
+#!/usr/bin/env python3
+"""Unit tests for the credential-blind inference state adapter."""
+from __future__ import annotations
+
+import importlib.util
+import json
+import math
+import tempfile
+import unittest
+from pathlib import Path
+
+
+MODULE_PATH = Path("/home/diamondnode/bin/webgpu-self-observer-state.py")
+SPEC = importlib.util.spec_from_file_location("webgpu_self_observer_state", MODULE_PATH)
+assert SPEC and SPEC.loader
+MODULE = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(MODULE)
+
+
+NOW = 1_700_000_000.0
+UNAVAILABLE = {
+    "status": "unavailable",
+    "engine": None,
+    "age_s": None,
+    "gate": None,
+    "samples_per_s": None,
+    "min_energy": None,
+}
+
+
+def fresh_state(**overrides):
+    state = {
+        "ts": NOW - 90,
+        "ok": True,
+        "energy_gate": {"gpu_ok": True, "reason": "within governor envelope"},
+        "result": {
+            "engine": "thrml-0.1.3/jax-gpu",
+            "samples_per_s": 128.5,
+            "min_energy": -42.25,
+        },
+    }
+    state.update(overrides)
+    return state
+
+
+class ReadInferenceStateTests(unittest.TestCase):
+    def write_state(self, payload: object) -> Path:
+        temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(temp_dir.cleanup)
+        path = Path(temp_dir.name) / "state.json"
+        path.write_text(json.dumps(payload))
+        return path
+
+    def test_returns_allowlisted_fresh_jax_gpu_measurement(self):
+        result = MODULE.read_inference_state(self.write_state(fresh_state()), NOW)
+
+        self.assertEqual(
+            result,
+            {
+                "status": "fresh",
+                "engine": "thrml-0.1.3/jax-gpu",
+                "age_s": 90,
+                "gate": "open",
+                "samples_per_s": 128.5,
+                "min_energy": -42.25,
+            },
+        )
+
+    def test_labels_result_stale_after_six_hours(self):
+        result = MODULE.read_inference_state(
+            self.write_state(fresh_state(ts=NOW - (6 * 60 * 60) - 1)), NOW
+        )
+
+        self.assertEqual(result["status"], "stale")
+        self.assertEqual(result["age_s"], 6 * 60 * 60 + 1)
+        self.assertEqual(set(result), set(UNAVAILABLE))
+
+    def test_keeps_the_exact_six_hour_limit_fresh(self):
+        result = MODULE.read_inference_state(
+            self.write_state(fresh_state(ts=NOW - (6 * 60 * 60))), NOW
+        )
+
+        self.assertEqual(result["status"], "fresh")
+        self.assertEqual(result["age_s"], 6 * 60 * 60)
+
+    def test_marks_a_fractional_second_past_the_limit_stale(self):
+        result = MODULE.read_inference_state(
+            self.write_state(fresh_state(ts=NOW - (6 * 60 * 60) - 0.5)), NOW
+        )
+
+        self.assertEqual(result["status"], "stale")
+        self.assertEqual(result["age_s"], 6 * 60 * 60)
+
+    def test_fails_closed_for_failed_inference(self):
+        result = MODULE.read_inference_state(self.write_state(fresh_state(ok=False)), NOW)
+
+        self.assertEqual(result, UNAVAILABLE)
+
+    def test_fails_closed_for_malformed_json(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "state.json"
+            path.write_text("{")
+            result = MODULE.read_inference_state(path, NOW)
+
+        self.assertEqual(result, UNAVAILABLE)
+
+    def test_output_allowlist_never_copies_untrusted_values(self):
+        result = MODULE.read_inference_state(
+            self.write_state(
+                fresh_state(
+                    credential="not-for-output",
+                    callback_url="https://example.invalid/private",
+                    energy_gate={
+                        "gpu_ok": True,
+                        "reason": "not-for-output",
+                        "authorization": "not-for-output",
+                    },
+                    result={
+                        "engine": "thrml-0.1.3/jax-gpu",
+                        "samples_per_s": 128.5,
+                        "min_energy": -42.25,
+                        "endpoint": "https://example.invalid/private",
+                        "token": "not-for-output",
+                    },
+                )
+            ),
+            NOW,
+        )
+
+        self.assertEqual(set(result), set(UNAVAILABLE))
+        rendered = json.dumps(result)
+        self.assertNotIn("not-for-output", rendered)
+        self.assertNotIn("example.invalid", rendered)
+
+    def test_fails_closed_for_non_finite_or_out_of_range_numbers(self):
+        invalids = [
+            fresh_state(ts=math.nan),
+            fresh_state(result={"engine": "thrml-0.1.3/jax-gpu", "samples_per_s": math.inf, "min_energy": -1}),
+            fresh_state(result={"engine": "thrml-0.1.3/jax-gpu", "samples_per_s": -1, "min_energy": -1}),
+            fresh_state(result={"engine": "thrml-0.1.3/jax-gpu", "samples_per_s": 1, "min_energy": 1_000_001}),
+        ]
+
+        for payload in invalids:
+            with self.subTest(payload=payload):
+                self.assertEqual(MODULE.read_inference_state(self.write_state(payload), NOW), UNAVAILABLE)
+
+
+if __name__ == "__main__":
+    unittest.main()

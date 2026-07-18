@@ -71,8 +71,8 @@ init_placeholders() {
   atomic_write "$STATE_DIR/swarm.txt" "SWARM: /fleet /swarm polling monitor_state + claws | live inference"
   atomic_write "$STATE_DIR/health.txt" "HEALTH: gateway:000 dn:000 mcp:000 | fleet/swarm active"
   atomic_write "$STATE_DIR/logs.txt" "EVT: hearth evt- stream for Kimiclaw | playful embodiment + tension"
-  atomic_write "$STATE_DIR/live.txt" "eXhibit LIVE yennefer-quest.pages.dev/fable5-exhibit-app.html | KEY:vault | broadcast 1XxyggNlQjbGM"
-  atomic_write "$STATE_DIR/footer.txt" "eXhibit App RTMP mirror | 1920x1080 9Mbps NVENC | Periscope 1XxyggNlQjbGM | /fleet /swarm"
+  atomic_write "$STATE_DIR/live.txt" "eXhibit LIVE yennefer-quest.pages.dev/fable5-exhibit-app.html | KEY:vault | broadcast 1RJjppvDnWpKw"
+  atomic_write "$STATE_DIR/footer.txt" "eXhibit App RTMP mirror | 1920x1080 9Mbps NVENC | Periscope 1RJjppvDnWpKw | /fleet /swarm"
   # Fable Built UI live simulation files (RTMP video source IS the Hearth)
   atomic_write "$STATE_DIR/orb-state.txt" "HEARTH-WARM"
   atomic_write "$STATE_DIR/orb-detail.txt" "Hearth tension → fire/mist/grove reactivity"
@@ -466,7 +466,7 @@ write("exhibit-x-intents.txt", (viewer_intents.get("cta_overlay") or "viewers ·
 write(
     "exhibit-footer.txt",
     f"yennefer-quest.pages.dev/fable5-exhibit-app  ·  "
-    f"VA RTMP k2atpt1e4x6v  ·  {datetime.now(timezone.utc).strftime('%H:%M:%S')}Z",
+    f"VA RTMP [credential sealed]  ·  {datetime.now(timezone.utc).strftime('%H:%M:%S')}Z",
 )
 PY
 }
