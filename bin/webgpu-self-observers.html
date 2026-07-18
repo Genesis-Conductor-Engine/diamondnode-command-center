@@ -105,49 +105,101 @@ struct U { phase: f32, gap: f32, viewers: f32, temp: f32, vram: f32, intent: f32
 }
 `;
 
-function el(cls, label, val) {
-  return `<div class="line"><span class="metric">${label}</span> <span class="val">${val}</span></div>`;
+function appendLine(container, label, value) {
+  const line = document.createElement('div');
+  const metric = document.createElement('span');
+  const val = document.createElement('span');
+  line.className = 'line';
+  metric.className = 'metric';
+  val.className = 'val';
+  metric.textContent = label;
+  val.textContent = value;
+  line.append(metric, document.createTextNode(' '), val);
+  container.appendChild(line);
+}
+
+function renderLines(container, lines) {
+  container.textContent = '';
+  lines.forEach(([label, value]) => appendLine(container, label, value));
+}
+
+function formatNumber(value, digits = 2) {
+  return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) : '—';
+}
+
+function renderInferenceHud(inference) {
+  const selfPanel = document.getElementById('self-panel');
+  if (inference.status === 'unavailable' || (inference.status !== 'fresh' && inference.status !== 'stale')) {
+    appendLine(selfPanel, 'thrml/JAX', 'unavailable — measured inference unavailable');
+    return;
+  }
+
+  const freshness = inference.status === 'stale' ? 'stale' : 'fresh';
+  const engine = inference.engine === 'thrml-0.1.3/jax-gpu' ? inference.engine : '—';
+  const age = formatNumber(inference.age_s, 0);
+  const gate = inference.gate === 'open' || inference.gate === 'closed' ? inference.gate : '—';
+  const rate = formatNumber(inference.samples_per_s);
+  const energy = formatNumber(inference.min_energy);
+  appendLine(
+    selfPanel,
+    'thrml/JAX',
+    `${engine} · ${freshness} · age ${age}s · gate ${gate} · ${rate} samples/s · E_min ${energy}`,
+  );
+}
+
+function appendChatLine(container, className, text) {
+  const line = document.createElement('div');
+  const speaker = document.createElement('span');
+  speaker.className = className;
+  speaker.textContent = text;
+  line.appendChild(speaker);
+  container.appendChild(line);
 }
 
 function renderHud() {
   const s = state.self || {};
   const o = state.observers || {};
-  document.getElementById('self-panel').innerHTML = [
-    el('intent', s.intent || '—'),
-    el('signal', s.signal || '—'),
-    el('thermo', `${s.temp_c ?? '—'}°C · VRAM ${s.vram_pct ?? '—'}%`),
-    el('epoch', s.epoch_id || '—'),
-    el('reducibility', s.reducibility ?? '—'),
-    el('self-model', s.self_model || 'internal thermo + Opux field'),
-  ].join('');
-  document.getElementById('obs-panel').innerHTML = [
-    el('viewers', o.viewers ?? '—'),
-    el('chat rate', o.chat_rate || '—'),
-    el('occupant', o.occupant || '—'),
-    el('verdict', o.verdict || '—'),
-    el('perceived', o.perceived_signal || '—'),
-    el('broadcast', o.broadcast || '—'),
-    el('X source', `${o.x_source ?? '—'} · Δact ${(o.x_observer_activity ?? 0).toFixed ? (o.x_observer_activity ?? 0).toFixed(2) : o.x_observer_activity ?? 0}`),
-    el('X posts', `${o.x_posts ?? '—'} · @${o.x_top_author ?? '?'}`),
-    el('X metrics', `♥ ${o.x_likes ?? 0} · ↻ ${o.x_retweets ?? 0} · 💬 ${o.x_replies ?? 0}`),
-    el('X topic', (o.x_top_topic || '—').slice(0, 48)),
-    el('X pulse', (o.x_top_post || '—').slice(0, 72)),
-    el('chat reply', `◂ ${o.chat_last_host || '?'}: ${(o.chat_last_reply || '—').slice(0, 56)}`),
-    el('viewer CTA', (state.viewer_intents && state.viewer_intents.cta_overlay) || 'Post · Follow · companion'),
-  ].join('');
+  const inference = state.inference || {};
+  renderLines(document.getElementById('self-panel'), [
+    ['intent', s.intent || '—'],
+    ['signal', s.signal || '—'],
+    ['thermo', `${s.temp_c ?? '—'}°C · VRAM ${s.vram_pct ?? '—'}%`],
+    ['epoch', s.epoch_id || '—'],
+    ['reducibility', s.reducibility ?? '—'],
+    ['self-model', s.self_model || 'internal thermo + Opux field'],
+  ]);
+  renderInferenceHud(inference);
+  renderLines(document.getElementById('obs-panel'), [
+    ['viewers', o.viewers ?? '—'],
+    ['chat rate', o.chat_rate || '—'],
+    ['occupant', o.occupant || '—'],
+    ['verdict', o.verdict || '—'],
+    ['perceived', o.perceived_signal || '—'],
+    ['broadcast', o.broadcast || '—'],
+    ['X source', `${o.x_source ?? '—'} · Δact ${formatNumber(o.x_observer_activity)}`],
+    ['X posts', `${o.x_posts ?? '—'} · @${o.x_top_author ?? '?'}`],
+    ['X metrics', `♥ ${o.x_likes ?? 0} · ↻ ${o.x_retweets ?? 0} · 💬 ${o.x_replies ?? 0}`],
+    ['X topic', (o.x_top_topic || '—').slice(0, 48)],
+    ['X pulse', (o.x_top_post || '—').slice(0, 72)],
+    ['chat reply', `◂ ${o.chat_last_host || '?'}: ${(o.chat_last_reply || '—').slice(0, 56)}`],
+    ['viewer CTA', (state.viewer_intents && state.viewer_intents.cta_overlay) || 'Post · Follow · companion'],
+  ]);
   const vi = state.viewer_intents || {};
   const ctaLine = document.getElementById('viewer-cta-line');
   const companion = document.getElementById('viewer-companion');
   if (ctaLine) ctaLine.textContent = vi.cta_overlay || 'Post · Follow @kovachenterprises';
   if (companion) companion.textContent = vi.companion_hint || vi.exhibit_url || 'yennefer.quest/fable5-exhibit-app.html';
   const exchanges = (state.chat && state.chat.exchanges) || [];
-  const ticker = exchanges.length
-    ? exchanges.map(ex =>
-        `<div><span class="viewer">▸ @${ex.viewer}:</span> ${(ex.question || '').slice(0, 64)}</div>`
-        + `<div><span class="host">◂ ${ex.host_label || ex.host}:</span> ${(ex.reply || '').slice(0, 72)}</div>`
-      ).join('')
-    : '<div class="host">◂ awaiting viewer chat — POST /chat/inbox</div>';
-  document.getElementById('chat-ticker').innerHTML = ticker;
+  const ticker = document.getElementById('chat-ticker');
+  ticker.textContent = '';
+  if (exchanges.length) {
+    exchanges.forEach(ex => {
+      appendChatLine(ticker, 'viewer', `▸ @${ex.viewer}: ${(ex.question || '').slice(0, 64)}`);
+      appendChatLine(ticker, 'host', `◂ ${ex.host_label || ex.host}: ${(ex.reply || '').slice(0, 72)}`);
+    });
+  } else {
+    appendChatLine(ticker, 'host', '◂ awaiting viewer chat — POST /chat/inbox');
+  }
   document.getElementById('gap-score').textContent =
     `Δ perception ${(state.gap ?? 0).toFixed(3)}`;
   document.getElementById('footer-right').textContent = state.ts || new Date().toISOString();
