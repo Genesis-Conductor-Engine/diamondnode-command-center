@@ -26,6 +26,8 @@ UNAVAILABLE = {
     "samples_per_s": None,
     "min_energy": None,
 }
+WITHHELD = "[sensitive content withheld]"
+CHAT_FIELDS = {"question", "reply", "host", "host_label", "viewer", "source"}
 
 
 def fresh_state(**overrides):
@@ -143,6 +145,66 @@ class ReadInferenceStateTests(unittest.TestCase):
         for payload in invalids:
             with self.subTest(payload=payload):
                 self.assertEqual(MODULE.read_inference_state(self.write_state(payload), NOW), UNAVAILABLE)
+
+
+class PublicChatProjectionTests(unittest.TestCase):
+    def project(self, chat_response: dict, lines: str) -> dict:
+        projection = getattr(
+            MODULE,
+            "project_public_chat",
+            lambda response, raw_lines: {
+                "exchanges": response.get("exchanges") or [],
+                "last_reply": response.get("last_reply") or {},
+                "lines": raw_lines,
+                "count": len(response.get("exchanges") or []),
+            },
+        )
+        return projection(chat_response, lines)
+
+    def test_withholds_sensitive_indicators_from_every_public_chat_field(self):
+        exchange = {
+            "question": "please share the stream key",
+            "reply": "rtmp://unit.invalid/path",
+            "host": "rtmps://unit.invalid/path",
+            "host_label": "Bearer example-value",
+            "viewer": "api_token=example-value",
+            "source": "client_secret: example-value",
+        }
+        projected = self.project(
+            {"exchanges": [exchange], "last_reply": exchange},
+            "secret = example-value",
+        )
+
+        exchange_values = [projected["exchanges"][0].get(field) for field in CHAT_FIELDS]
+        last_values = [projected["last_reply"].get(field) for field in CHAT_FIELDS]
+        self.assertTrue(all(value == WITHHELD for value in exchange_values))
+        self.assertTrue(all(value == WITHHELD for value in last_values))
+        self.assertTrue(projected["lines"] == WITHHELD)
+
+    def test_projects_only_the_latest_three_allowlisted_exchanges(self):
+        exchanges = [
+            {
+                "question": f"question {index}",
+                "reply": f"reply {index}",
+                "host": "fox",
+                "host_label": "Fox",
+                "viewer": f"viewer-{index}",
+                "source": "canned",
+                "private_metadata": "not public",
+            }
+            for index in range(4)
+        ]
+        projected = self.project(
+            {"exchanges": exchanges, "last_reply": exchanges[-1]},
+            "safe overlay line",
+        )
+
+        self.assertEqual(len(projected["exchanges"]), 3)
+        self.assertTrue(all(set(exchange) == CHAT_FIELDS for exchange in projected["exchanges"]))
+        self.assertTrue(set(projected["last_reply"]) == CHAT_FIELDS)
+        self.assertEqual(projected["exchanges"][0]["question"], "question 1")
+        self.assertEqual(projected["lines"], "safe overlay line")
+        self.assertEqual(projected["count"], 4)
 
 
 if __name__ == "__main__":

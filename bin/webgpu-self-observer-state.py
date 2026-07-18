@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -15,6 +16,20 @@ FRESHNESS_LIMIT_S = 6 * 60 * 60
 MAX_SAMPLES_PER_S = 1_000_000
 MAX_ABS_ENERGY = 1_000_000
 ALLOWED_ENGINES = {"thrml-0.1.3/jax-gpu"}
+SENSITIVE_CONTENT_WITHHELD = "[sensitive content withheld]"
+PUBLIC_CHAT_FIELD_LIMITS = {
+    "question": 280,
+    "reply": 120,
+    "host": 40,
+    "host_label": 80,
+    "viewer": 64,
+    "source": 64,
+}
+SENSITIVE_CHAT_PATTERN = re.compile(
+    r"(?:\bstream[\s_-]+key\b|rtmps?://|\bbearer(?:\s+|\s*[:=]\s*)\S+|"
+    r"(?:^|[^a-z0-9])[\"']?[\w.-]*(?:token|secret)[\w.-]*[\"']?\s*[:=]\s*\S+)",
+    re.IGNORECASE,
+)
 
 UNAVAILABLE_INFERENCE = {
     "status": "unavailable",
@@ -24,6 +39,39 @@ UNAVAILABLE_INFERENCE = {
     "samples_per_s": None,
     "min_energy": None,
 }
+
+
+def public_chat_text(value: object, limit: int) -> str:
+    """Project one untrusted chat value without logging rejected content."""
+    if not isinstance(value, str):
+        return "—"
+    if SENSITIVE_CHAT_PATTERN.search(value):
+        return SENSITIVE_CONTENT_WITHHELD
+    return value[:limit]
+
+
+def project_chat_exchange(exchange: object) -> dict:
+    if not isinstance(exchange, dict):
+        exchange = {}
+    return {
+        field: public_chat_text(exchange.get(field, "—"), limit)
+        for field, limit in PUBLIC_CHAT_FIELD_LIMITS.items()
+    }
+
+
+def project_public_chat(chat_response: object, lines: object) -> dict:
+    """Return the strict public projection of recent and latest chat state."""
+    if not isinstance(chat_response, dict):
+        chat_response = {}
+    exchanges = chat_response.get("exchanges")
+    if not isinstance(exchanges, list):
+        exchanges = []
+    return {
+        "exchanges": [project_chat_exchange(exchange) for exchange in exchanges[-3:]],
+        "last_reply": project_chat_exchange(chat_response.get("last_reply")),
+        "lines": public_chat_text(lines, 120),
+        "count": len(exchanges),
+    }
 
 
 def read_inference_state(path: Path, now: float) -> dict:
@@ -139,8 +187,9 @@ def main():
     x_agg = x_pulse.get("aggregate_metrics") or {}
     top_post = (x_pulse.get("top_posts") or [{}])[0] if x_pulse.get("top_posts") else {}
     top_ann = (x_pulse.get("top_annotations") or [{}])[0]
-    last_chat = chat_resp.get("last_reply") or {}
-    recent = (chat_resp.get("exchanges") or [])[-3:]
+    public_chat = project_public_chat(chat_resp, read_txt("chat-response-latest.txt", "—"))
+    last_chat = public_chat["last_reply"]
+    recent = public_chat["exchanges"]
 
     payload = {
         "ts": datetime.now(timezone.utc).isoformat(),
@@ -175,12 +224,12 @@ def main():
             "chat_last_reply": (last_chat.get("reply") or "—")[:80],
             "chat_last_host": last_chat.get("host_label", "—"),
             "chat_last_viewer": last_chat.get("viewer", "—"),
-            "chat_count": len(chat_resp.get("exchanges") or []),
+            "chat_count": public_chat["count"],
             "chat_source": last_chat.get("source", "—"),
         },
         "chat": {
             "exchanges": recent,
-            "lines": read_txt("chat-response-latest.txt", "—")[:120],
+            "lines": public_chat["lines"],
         },
         "inference": inference,
         "x_pulse": x_pulse,
