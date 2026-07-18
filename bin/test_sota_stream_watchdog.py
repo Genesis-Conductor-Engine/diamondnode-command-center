@@ -9,6 +9,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 HERE = Path(__file__).resolve().parent
@@ -210,6 +211,36 @@ class WatchdogTestCase(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             watchdog.systemctl_show_command("../../unsafe.service")
+
+    def test_systemctl_user_manager_commands_use_fixed_runtime_environment(self) -> None:
+        calls: list[dict] = []
+
+        class Result:
+            returncode = 0
+            stdout = "MainPID=41001\nActiveState=active\n"
+
+        def run(*args, **kwargs):
+            calls.append(kwargs)
+            return Result()
+
+        with (
+            patch.object(watchdog.os, "getuid", return_value=1000),
+            patch.object(watchdog.subprocess, "run", side_effect=run),
+        ):
+            source = watchdog.SystemctlSource()
+            self.assertEqual(
+                source.snapshot(self.service_name),
+                watchdog.ServiceSnapshot(pid=41001, active=True),
+            )
+            source.restart(self.service_name)
+
+        expected_env = {
+            "PATH": "/usr/bin:/bin",
+            "LANG": "C",
+            "LC_ALL": "C",
+            "XDG_RUNTIME_DIR": "/run/user/1000",
+        }
+        self.assertEqual([call["env"] for call in calls], [expected_env, expected_env])
 
 
 class UnitFileTestCase(unittest.TestCase):

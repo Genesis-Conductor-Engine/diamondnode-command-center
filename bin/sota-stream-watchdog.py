@@ -190,6 +190,11 @@ def systemctl_show_command(service_name: str) -> list[str]:
     ]
 
 
+def systemctl_user_manager_env() -> dict[str, str]:
+    """Build a fixed user-manager environment without copying process variables."""
+    return {**MINIMAL_ENV, "XDG_RUNTIME_DIR": f"/run/user/{os.getuid()}"}
+
+
 def _parse_systemctl_show(output: str) -> ServiceSnapshot:
     safe_values: dict[str, str] = {}
     for line in output.splitlines():
@@ -219,7 +224,7 @@ class SystemctlSource:
                 encoding="utf-8",
                 errors="replace",
                 timeout=5,
-                env=MINIMAL_ENV,
+                env=systemctl_user_manager_env(),
                 check=False,
             )
         except (OSError, subprocess.SubprocessError):
@@ -237,7 +242,7 @@ class SystemctlSource:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 timeout=15,
-                env=MINIMAL_ENV,
+                env=systemctl_user_manager_env(),
                 check=False,
             )
         except (OSError, subprocess.SubprocessError):
