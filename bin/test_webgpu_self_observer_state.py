@@ -68,6 +68,41 @@ class ReadInferenceStateTests(unittest.TestCase):
             },
         )
 
+    def test_returns_allowlisted_fresh_jax_cpu_fallback(self):
+        result = MODULE.read_inference_state(
+            self.write_state(
+                fresh_state(
+                    energy_gate={"gpu_ok": False, "reason": "governor closed"},
+                    result={
+                        "engine": "thrml-0.1.3/jax-cpu",
+                        "samples_per_s": 64.25,
+                        "min_energy": -21.5,
+                    },
+                )
+            ),
+            NOW,
+        )
+
+        self.assertEqual(
+            result,
+            {
+                "status": "fresh",
+                "engine": "thrml-0.1.3/jax-cpu",
+                "age_s": 90,
+                "gate": "closed",
+                "samples_per_s": 64.25,
+                "min_energy": -21.5,
+            },
+        )
+
+    def test_fails_closed_for_unreviewed_engine_label(self):
+        state = fresh_state()
+        state["result"]["engine"] = "unreviewed-engine"
+
+        result = MODULE.read_inference_state(self.write_state(state), NOW)
+
+        self.assertEqual(result, UNAVAILABLE)
+
     def test_labels_result_stale_after_six_hours(self):
         result = MODULE.read_inference_state(
             self.write_state(fresh_state(ts=NOW - (6 * 60 * 60) - 1)), NOW

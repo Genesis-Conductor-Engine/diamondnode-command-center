@@ -15,7 +15,7 @@ INFERENCE_STATE = Path("/home/diamondnode/diamond-node/state/thrml_ebm_state.jso
 FRESHNESS_LIMIT_S = 6 * 60 * 60
 MAX_SAMPLES_PER_S = 1_000_000
 MAX_ABS_ENERGY = 1_000_000
-ALLOWED_ENGINES = {"thrml-0.1.3/jax-gpu"}
+ALLOWED_ENGINES = {"thrml-0.1.3/jax-gpu", "thrml-0.1.3/jax-cpu"}
 SENSITIVE_CONTENT_WITHHELD = "[sensitive content withheld]"
 PUBLIC_CHAT_FIELD_LIMITS = {
     "question": 280,
