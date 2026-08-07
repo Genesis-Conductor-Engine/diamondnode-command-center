@@ -149,69 +149,20 @@ def intent_update(
                         prior.label)
         return _intent_update_fallback(widened, evidence, evidence_variance)
 
-    st = _load_torx()
     try:
         import jax.numpy as jnp
-        from torx.psc import AffineGaussianGate, AffineGaussianSimulator, HybridPCircuit
 
-        # Site 0: latent intent (n dims). Site 1: evidence readout (n dims).
-        #
-        # Three affine-Gaussian gates, because the simulator starts every run at
-        # zero mean *and zero covariance* and the diagonal ``Diffuse`` gate can
-        # only add isotropic noise — neither can express a correlated prior on
-        # its own:
-        #
-        #   1. whiten   x <- x + N(0, I)                 site 0 gets cov = I
-        #   2. colour   x <- L x + prior_mean            cov = L Lᵀ = prior_cov
-        #   3. observe  y <- x + N(0, evidence_variance) the measurement channel
-        #
-        # Step 2 is what carries the off-diagonal prior terms through, so a
-        # correlated intent (two dimensions that move together) stays correlated
-        # in the posterior instead of being silently diagonalised.
+        run = _build_intent_jit(n)
         prior_arr = jnp.asarray(prior_cov)
         chol = jnp.linalg.cholesky(prior_arr + CONDITION_JITTER * jnp.eye(n))
         if not bool(jnp.all(jnp.isfinite(chol))):
             raise ValueError("prior covariance is not positive definite")
-
-        g_whiten = AffineGaussianGate(sites={"continuous": [0]}, dims=(n,))
-        theta_whiten = {
-            "A": jnp.eye(n),
-            "b": jnp.zeros(n),
-            "log_var": jnp.zeros(n),  # exp(0) = 1 -> unit isotropic covariance
-        }
-        g_colour = AffineGaussianGate(sites={"continuous": [0]}, dims=(n,))
-        theta_colour = {
-            "A": chol,
-            "b": jnp.asarray(prior.mean),
-            "log_var": jnp.full(n, -jnp.inf),  # deterministic: exp(-inf) = 0
-        }
-        g_obs = AffineGaussianGate(sites={"continuous": [0, 1]}, dims=(n, n))
-        A = (
-            jnp.zeros((2 * n, 2 * n))
-            .at[:n, :n]
-            .set(jnp.eye(n))
-            .at[n:, :n]
-            .set(jnp.eye(n))
+        mean, cov = run(
+            chol,
+            jnp.asarray(prior.mean),
+            jnp.asarray([float(v) for v in evidence]),
+            jnp.asarray(math.log(evidence_variance)),
         )
-        theta_obs = {
-            "A": A,
-            "b": jnp.zeros(2 * n),
-            "log_var": jnp.concatenate(
-                [jnp.full(n, -jnp.inf), jnp.full(n, math.log(evidence_variance))]
-            ),
-        }
-        circuit = HybridPCircuit([g_whiten, g_colour, g_obs], reps=1)
-        sim = AffineGaussianSimulator()
-        built = sim.build_circuit(circuit, [theta_whiten, theta_colour, theta_obs])
-        init = jnp.zeros(2 * n)
-        posterior = sim.condition(
-            built,
-            {1: jnp.asarray([float(v) for v in evidence])},
-            initial_continuous=init,
-            query_sites=[0],
-            jitter=CONDITION_JITTER,
-        )
-        mean, cov = posterior.site_moments(0)
         mean_l = [float(v) for v in mean]
         cov_l = tuple(tuple(float(v) for v in row) for row in cov)
         if not all(math.isfinite(v) for v in mean_l):
@@ -221,6 +172,83 @@ def intent_update(
         widened = PMode(prior.dimensions, prior.mean, tuple(map(tuple, prior_cov)),
                         prior.label)
         return _intent_update_fallback(widened, evidence, evidence_variance)
+
+
+#: Compiled affine-Gaussian intent circuits, keyed by dimension count. The
+#: circuit structure depends only on ``n``, so one compile serves every update
+#: at that width. Without this, each call re-traced the simulator and cost ~3s —
+#: far outside the card's decision budget for a critical-path kernel.
+_intent_jit_cache: dict[int, Any] = {}
+
+
+def _build_intent_jit(n: int):
+    if n in _intent_jit_cache:
+        return _intent_jit_cache[n]
+    import jax
+    import jax.numpy as jnp
+    from torx.psc import AffineGaussianGate, AffineGaussianSimulator, HybridPCircuit
+
+
+    # Site 0: latent intent (n dims). Site 1: evidence readout (n dims).
+    #
+    # Three affine-Gaussian gates, because the simulator starts every run at
+    # zero mean *and zero covariance* and the diagonal ``Diffuse`` gate can only
+    # add isotropic noise — neither can express a correlated prior on its own:
+    #
+    #   1. whiten   x <- x + N(0, I)                 site 0 gets cov = I
+    #   2. colour   x <- L x + prior_mean            cov = L Lt = prior_cov
+    #   3. observe  y <- x + N(0, evidence_variance) the measurement channel
+    #
+    # Step 2 is what carries the off-diagonal prior terms through, so a
+    # correlated intent (two dimensions that move together) stays correlated in
+    # the posterior instead of being silently diagonalised.
+    g_whiten = AffineGaussianGate(sites={"continuous": [0]}, dims=(n,))
+    g_colour = AffineGaussianGate(sites={"continuous": [0]}, dims=(n,))
+    g_obs = AffineGaussianGate(sites={"continuous": [0, 1]}, dims=(n, n))
+    circuit = HybridPCircuit([g_whiten, g_colour, g_obs], reps=1)
+    sim = AffineGaussianSimulator()
+
+    copy_latent_into_readout = (
+        jnp.zeros((2 * n, 2 * n)).at[:n, :n].set(jnp.eye(n)).at[n:, :n].set(jnp.eye(n))
+    )
+    init = jnp.zeros(2 * n)
+
+    # ``condition`` requires observed/query site membership to be static Python
+    # values; only the observation vector and jitter may be traced. Both hold
+    # here, so the whole update jits cleanly.
+    @jax.jit
+    def run(chol, prior_mean, evidence, log_evidence_var):
+        thetas = [
+            {
+                "A": jnp.eye(n),
+                "b": jnp.zeros(n),
+                "log_var": jnp.zeros(n),  # exp(0) = 1 -> unit isotropic covariance
+            },
+            {
+                "A": chol,
+                "b": prior_mean,
+                "log_var": jnp.full(n, -jnp.inf),  # deterministic: exp(-inf) = 0
+            },
+            {
+                "A": copy_latent_into_readout,
+                "b": jnp.zeros(2 * n),
+                "log_var": jnp.concatenate(
+                    [jnp.full(n, -jnp.inf), jnp.full(n, log_evidence_var)]
+                ),
+            },
+        ]
+        built = sim.build_circuit(circuit, thetas)
+        posterior = sim.condition(
+            built,
+            {1: evidence},
+            initial_continuous=init,
+            query_sites=[0],
+            jitter=CONDITION_JITTER,
+        )
+        return posterior.site_moments(0)
+
+    _intent_jit_cache[n] = run
+    return run
 
 
 def diffuse_prior(dimensions: Sequence[str] = TENSION_DIMENSIONS) -> PMode:
@@ -320,12 +348,18 @@ def _class_scores(gradient: PMode, *, has_authorization_gap: bool) -> list[float
     magnitude = _robust_norm(list(g.values()))
     scale = 6.0  # sharpens the softmax; tuned so a clear cause dominates
 
-    aligned = scale * (1.0 - min(magnitude, 1.0))
+    # An authorization gap is an observed fact, not an estimate from the
+    # gradient, and it is not something agreement can resolve: participants can
+    # be perfectly aligned and still blocked because nobody holds the grant.
+    # So it suppresses ``aligned`` outright rather than competing with it — a
+    # tie would let a zero gradient report "aligned" and send the group looking
+    # for a bridge that cannot legally be applied.
+    authorization = scale * (2.0 if has_authorization_gap else 0.0)
+    aligned = 0.0 if has_authorization_gap else scale * (1.0 - min(magnitude, 1.0))
     semantic = scale * g["semantic_misalignment"]
     priority = scale * max(g["priority_mismatch"], 0.7 * g["temporal_pressure"])
     collision = scale * g["constraint_collision"]
     value_conflict = scale * min(g["goal_divergence"], g["constraint_collision"])
-    authorization = scale * (1.0 if has_authorization_gap else 0.0)
     # ``unresolved`` rises when several causes are simultaneously strong: no
     # single bridge strategy addresses that, and the card requires it be
     # surfaced rather than papered over.

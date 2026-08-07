@@ -320,6 +320,47 @@ def _decision_fallback(inputs: DecisionInputs) -> DecisionMarginals:
     )
 
 
+_decision_jit: Any = None
+
+
+def _build_decision_jit():
+    """Compile the decision circuit once and reuse it.
+
+    The circuit *structure* never changes — five sites, eight gates, fixed
+    wiring — only the three estimate thetas do. Rebuilding the circuit per call
+    made JAX re-trace ``density``'s ``fori_loop`` every time, costing ~2.7s a
+    decision on this node. The card puts the TORX update on the critical path
+    with a p99 decision budget (``gc_torx_update_seconds``,
+    ``TORX-update-p99-within-decision-budget``), so per-call retracing is a
+    correctness-of-deployment problem, not just slow tests.
+
+    The structure is closed over as a Python constant, so it is static to the
+    trace; only the theta vector is an argument.
+    """
+    global _decision_jit
+    if _decision_jit is not None:
+        return _decision_jit
+    st = _load_torx()
+    import jax
+
+    jnp = st["jnp"]
+    circuit = st["DiscretePCircuit"](_decision_gates(), reps=1)
+    sim = st["StateVectorSimulator"]()
+    n_gates = len(circuit.gates)
+    # All five sites start at 0, so the initial distribution is the point mass
+    # on |00000> — index 0 of the flattened state vector.
+    x0 = jnp.zeros((2**DECISION_SITES,)).at[0].set(1.0)
+
+    @jax.jit
+    def run(theta_stack):
+        thetas = [theta_stack[i] for i in range(n_gates)]
+        built = sim.build_circuit(circuit, thetas)
+        return sim.expval_all(built, x0)
+
+    _decision_jit = run
+    return run
+
+
 def evaluate_decision(inputs: DecisionInputs) -> DecisionMarginals:
     """Run the decision circuit and return its marginals.
 
@@ -332,13 +373,8 @@ def evaluate_decision(inputs: DecisionInputs) -> DecisionMarginals:
     st = _load_torx()
     try:
         jnp = st["jnp"]
-        circuit = st["DiscretePCircuit"](_decision_gates(), reps=1)
-        sim = st["StateVectorSimulator"]()
-        built = sim.build_circuit(circuit, _decision_thetas(inputs))
-        # All five sites start at 0: the initial distribution is the point mass
-        # on |00000>, which is index 0 of the flattened state vector.
-        x0 = jnp.zeros((2**DECISION_SITES,)).at[0].set(1.0)
-        expvals = sim.expval_all(built, x0)  # P(site = 1) for each binary site
+        run = _build_decision_jit()
+        expvals = run(jnp.stack(_decision_thetas(inputs)))
         p_viable = float(expvals[SITE_BRIDGE_VIABILITY])
         p_violation = float(expvals[SITE_BOUNDARY_VIOLATION])
         p_authorized = float(expvals[SITE_ACTION_AUTHORIZED])
@@ -423,33 +459,55 @@ def evaluate_categorical(
     target_pdit = _categorical_fallback(scores, outcomes, label)
     if not torx_available() or len(outcomes) < 2:
         return target_pdit
-    st = _load_torx()
     try:
+        st = _load_torx()
         jnp = st["jnp"]
-        PDEMUX = st["PDEMUX"]
         k = len(outcomes)
         target = target_pdit.probs
-        gates, thetas = [], []
+        # Stick-breaking move probabilities: P(token leaves site i | it arrived).
         remaining = 1.0
+        thetas = []
         for i in range(k - 1):
-            # P(token leaves site i | it arrived there)
             p_move = 1.0 - (target[i] / remaining) if remaining > 0 else 0.0
-            gates.append(PDEMUX([i, i + 1]))
-            thetas.append(jnp.array([logit(p_move)]))
+            thetas.append(logit(p_move))
             remaining = max(remaining - target[i], 0.0)
-        circuit = st["DiscretePCircuit"](gates, reps=1)
-        sim = st["StateVectorSimulator"]()
-        built = sim.build_circuit(circuit, thetas)
-        # Token starts on site 0: |1 0 0 ... 0>. Site 0 is the most significant
-        # axis of the reshaped state, so that basis index is 2**(k-1).
-        x0 = jnp.zeros((2**k,)).at[2 ** (k - 1)].set(1.0)
-        probs = [float(v) for v in sim.expval_all(built, x0)]
+        probs = [float(v) for v in _build_categorical_jit(k)(jnp.asarray(thetas))]
         total = math.fsum(probs)
         if not math.isfinite(total) or total <= 0:
             return target_pdit
         return PDit(tuple(outcomes), tuple(probs), label)
     except Exception:
         return target_pdit
+
+
+#: Compiled stick-breaking circuits keyed by outcome count. Same reason as the
+#: decision circuit: the structure depends only on ``k``, and re-tracing it on
+#: every classification would put the pdit construction outside the card's
+#: decision budget.
+_categorical_jit_cache: dict[int, Any] = {}
+
+
+def _build_categorical_jit(k: int):
+    if k in _categorical_jit_cache:
+        return _categorical_jit_cache[k]
+    st = _load_torx()
+    import jax
+
+    jnp = st["jnp"]
+    PDEMUX = st["PDEMUX"]
+    circuit = st["DiscretePCircuit"]([PDEMUX([i, i + 1]) for i in range(k - 1)], reps=1)
+    sim = st["StateVectorSimulator"]()
+    # Token starts on site 0: |1 0 0 ... 0>. Site 0 is the most significant axis
+    # of the reshaped state, so that basis index is 2**(k-1).
+    x0 = jnp.zeros((2**k,)).at[2 ** (k - 1)].set(1.0)
+
+    @jax.jit
+    def run(theta_vector):
+        thetas = [theta_vector[i : i + 1] for i in range(k - 1)]
+        return sim.expval_all(sim.build_circuit(circuit, thetas), x0)
+
+    _categorical_jit_cache[k] = run
+    return run
 
 
 def tension_class_pdit(scores: Sequence[float]) -> PDit:

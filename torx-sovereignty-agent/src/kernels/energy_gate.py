@@ -127,6 +127,19 @@ def energy_gate(thermo: ThermoState | None = None) -> GateDecision:
         return GateDecision(
             False, "no telemetry (daemon down, nvidia-smi failed) — CPU only", None
         )
+    # A *successful* read carrying no usable readings is not the same as a
+    # failed read, and it is the more dangerous case: the daemon answers 200
+    # with every field null when NVML cannot attach (driver not loaded), so the
+    # per-threshold checks below would each skip their None and fall through to
+    # "within envelope" — opening the gate on a GPU we know nothing about.
+    # Absent telemetry fails closed, exactly as a failed read does.
+    if state.temp_c is None and state.vram_pct is None and state.util_pct is None:
+        return GateDecision(
+            False,
+            f"telemetry present but empty (source={state.source}) — "
+            "no usable GPU readings, CPU only",
+            state,
+        )
     if state.temp_c is not None and state.temp_c >= GATE_TEMP_C:
         return GateDecision(
             False, f"temp {state.temp_c}C >= {GATE_TEMP_C}C", state
