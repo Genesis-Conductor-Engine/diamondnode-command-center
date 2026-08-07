@@ -1,81 +1,82 @@
-# System files
-.vibe/
-.agents/
-.aider-desk/
-.augment/
-.bob/
-.bun/
-.claude/
-.claude.json
-.claude-tmp/
-.codeartsdoer/
-.codebuddy/
-.codemaker/
-.codestudio/
-.codex/
-.commandcode/
-.config/
-.cache/
+# Deny-by-default: this home directory accumulates dozens of tool configs,
+# credential vaults, and session dumps over time (.ssh, .gnupg,
+# .credential-vault, .diamond-keys, .openclaw/credentials, per-tool .env
+# files, etc). A blocklist can't keep up with new tools appearing, so instead
+# only the paths explicitly tracked in this repo are un-ignored below.
+/*
 
-# Environment files
-.env
-.env.local
-.env.*.local
+# --- Allowlisted tracked top-level paths ---
+# .config and .openclaw are shared tool-state dirs where almost everything
+# else is unrelated config/credentials, so each directory level must be
+# re-ignored (/dir/*) and only the specific tracked path re-allowed (!),
+# rather than opening the whole subtree with a single !dir/** rule.
+!/.config
+/.config/*
+!/.config/systemd
+/.config/systemd/*
+!/.config/systemd/user
+/.config/systemd/user/*
+!/.config/systemd/user/sota-stream-watchdog.service
+!/.config/systemd/user/sota-stream-watchdog.timer
 
-# Logs
-*.log
-*.swp
-*~
+!/.github
+/.github/*
+!/.github/workflows
+/.github/workflows/*
+!/.github/workflows/openclaw-handoff.yml
 
-# IDE
-.idea/
-.vscode/
-*.sublime-workspace
-*.sublime-project
+!/.gitignore
 
-# OS
-.DS_Store
-Thumbs.db
+!/.openclaw
+/.openclaw/*
+!/.openclaw/QUICKSTART.md
+!/.openclaw/config.json
+!/.openclaw/hooks
+/.openclaw/hooks/*
+!/.openclaw/hooks/pre-receive
 
-# Handoffs (processed)
-gc-workers/diamondnode-integration/handoffs/processed/
-gc-workers/diamondnode-integration/handoffs/archive/
+!/DEPLOYMENT_SUMMARY.md
+!/LICENSE
+!/README.md
+!/bin
+!/bin/**
+!/deploy-cloud.sh
+!/directo
+!/directo/**
+!/genesis_conductor_engine
+!/genesis_conductor_engine/**
+!/load-env.sh
+!/mirage-workspace
+!/mirage-workspace/**
+!/publish
+!/publish/**
+!/thermodynamic-daemon
+!/thermodynamic-daemon/**
+!/torx-sovereignty-agent
+!/torx-sovereignty-agent/**
 
-# OpenClaw logs
-.openclaw/logs/
-.openclaw/hooks/*.log
-mirage-workspace/.venv/
-mirage-workspace/diskroot/
-mirage-workspace/.mirage/
-__pycache__/
-node_modules/
-.openclaw/agents/*/sessions/
+# --- Deny secret/credential-shaped files even inside allowlisted trees ---
+**/.env
+**/.env.*
+**/*.env
+**/*_env
+**/*secret*
+**/*credential*
+**/*mnemonic*
+**/*.pem
+**/*.key
+**/id_rsa
+**/id_ed25519
+**/*.p12
+**/*.pfx
 
-# Package manager / tool caches & installs (added 2026-07-16)
-.local/
-.npm/
-.npm-global/
-node_modules/
-venv*/
-.venv/
-*.venv/
-
-# Large runtime data (added 2026-07-16)
-.genesis/
-
-# ML tool caches (added 2026-07-16)
-.xinference/
-.lmstudio/
-.hermes/
-.grok/
-.gemini/
-
-# Shell history - sensitive (added 2026-07-16)
-.bash_history
-.bash_history.*
-.zsh_history
-
-# Backup/broken script artifacts (added 2026-07-16)
-*.bak
-*.bak.*
-bin/sota-rtmp.env
+# --- Junk that can end up inside allowlisted trees ---
+**/__pycache__/
+**/node_modules/
+**/.venv/
+**/venv*/
+**/*.log
+**/*.swp
+**/*~
+**/.DS_Store
+**/Thumbs.db
