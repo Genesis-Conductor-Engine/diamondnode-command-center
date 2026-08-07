@@ -1,0 +1,1095 @@
+schema_version: "1.0.0"
+kind: GenesisConductorAgentModelCard
+
+metadata:
+  id: "torx-contextual-sovereignty-agent"
+  name: "TORX Contextual Sovereignty Agent"
+  version: "0.1.0"
+  status: "design-approved"
+  owner:
+    name: "Igor Holt"
+    organization: "Genesis Conductor Ecosystem"
+    orcid: "0009-0008-8389-1297"
+  labels:
+    - "torx"
+    - "rule30-vdf"
+    - "jsonb"
+    - "mcp"
+    - "personalization"
+    - "group-intent"
+    - "contextual-sovereignty"
+    - "modular-differentiation"
+
+objective:
+  statement: >-
+    Compile a per-user effective agent from an immutable base contract,
+    automatically inferred personalization, current session context, and
+    group-relative intent while detecting the tension gradient between each
+    individual and the group, then applying the minimum authorized bridge that
+    reduces verified tension without crossing hard individual boundaries or
+    manufacturing consensus.
+  optimization_order:
+    - "preserve hard individual boundaries"
+    - "satisfy explicit authorization and tenant policy"
+    - "preserve dissent and uncertainty"
+    - "reduce group-individual tension"
+    - "maximize task utility"
+    - "minimize intervention and state growth"
+
+result_cards:
+  boundary_integrity:
+    title: "Boundary Integrity Result"
+    status: "crystalline"
+    claim: >-
+      Topological and TORX operations remain downstream of the observation
+      interface and do not require waveform, codec, denoise, or ASR internals.
+    deployment_effect: "safe as an estimation and decision layer"
+  persistence_stability:
+    title: "Persistence Stability Result"
+    status: "conditionally-invariant"
+    claim: >-
+      A discrete topology descriptor is unchanged only inside its verified
+      filtration-specific perturbation and decision-margin envelope.
+    invariant_condition: "C_F * epsilon < Delta_descriptor / 2"
+  large_deployment:
+    title: "Large Deployment Result"
+    status: "yes-conditionally"
+    claim: >-
+      The design is horizontally scalable when state and topology work are
+      bounded per session and topology remains an asynchronous degradable
+      sidecar.
+    readiness: "scalable-by-design-not-scale-proven"
+
+invariants:
+  immutable_base_contract: true
+  contextual_sovereignty: true
+  no_false_consensus: true
+  preserve_minority_positions: true
+  preserve_inference_uncertainty: true
+  append_only_revision_history: true
+  reversible_personalization: true
+  evidence_provenance_required: true
+  mcp_permission_envelope_cannot_self_expand: true
+  personalization_may_narrow_permissions: true
+  personalization_may_not_widen_permissions: true
+  signal_boundary:
+    accepted:
+      - "derived observations"
+      - "structured events"
+      - "delay and timing statistics"
+      - "turn-state labels"
+      - "confidence scores"
+    rejected:
+      - "raw waveform"
+      - "PCM samples"
+      - "codec bitstreams"
+      - "spectrogram tensors"
+      - "echo residuals"
+      - "ASR internal state"
+
+base_agent:
+  contract_id: "gc.agent.base.v1"
+  mutation: "forbidden-at-runtime"
+  effective_agent_formula: >-
+    effective_agent = immutable_base + tenant_policy + user_profile +
+    group_relative_overlay + session_context + selected_modules
+  compile_order:
+    - "immutable_base"
+    - "tenant_policy"
+    - "hard_user_boundaries"
+    - "automatic_user_profile"
+    - "group_relative_overlay"
+    - "session_context"
+    - "module_selection"
+    - "authorization_filter"
+  deterministic_merge:
+    strategy: "ordered-deep-merge"
+    scalar_conflict: "higher-precedence-layer-wins"
+    list_conflict: "stable-deduplicating-union"
+    hard_boundary_conflict: "reject-compile"
+
+personalization:
+  mode: "fully-automatic"
+  scope: "per-user-per-tenant"
+  persistence: "cross-session"
+  profile_layers:
+    explicit:
+      authority: "highest-user-owned"
+      examples:
+        - "declared goals"
+        - "hard boundaries"
+        - "language"
+        - "accessibility requirements"
+    inferred_persistent:
+      authority: "bounded-by-confidence-and-decay"
+      examples:
+        - "communication density"
+        - "preferred explanation structure"
+        - "workflow sequencing"
+        - "tool-selection preference"
+        - "feedback response pattern"
+    inferred_ephemeral:
+      authority: "session-only"
+      examples:
+        - "current urgency"
+        - "temporary cognitive load"
+        - "current task depth"
+    group_relative:
+      authority: "contextual"
+      examples:
+        - "role in current group"
+        - "distance from group intent"
+        - "bridge compatibility"
+  feature_domains:
+    communication:
+      - "verbosity"
+      - "technicality"
+      - "structure"
+      - "examples-versus-abstraction"
+      - "challenge-level"
+    workflow:
+      - "planning-depth"
+      - "iteration-size"
+      - "verification-frequency"
+      - "parallelism-preference"
+      - "artifact-format"
+    autonomy:
+      - "proposal-threshold"
+      - "execution-threshold-within-granted-permissions"
+      - "confirmation-frequency"
+    collaboration:
+      - "conflict-style"
+      - "consensus-preference"
+      - "dissent-expression"
+      - "bridge-receptivity"
+  inference_update:
+    trigger: "eligible-interaction-event"
+    event_deduplication_key: "tenant_id:user_id:event_id"
+    confidence:
+      provisional_minimum: 0.55
+      persistent_minimum: 0.75
+      consequential_adjustment_minimum: 0.90
+    decay:
+      enabled: true
+      half_life_days:
+        ordinary_preference: 90
+        workflow_preference: 180
+        explicit_boundary: null
+    contradiction_policy:
+      explicit_overrides_inferred: true
+      recent_high_confidence_overrides_old_low_confidence: true
+      unresolved_contradictions_are_retained: true
+  automatic_mutation:
+    enabled: true
+    human_approval_required: false
+    preconditions:
+      - "source evidence is attributable"
+      - "confidence threshold is satisfied"
+      - "mutation does not widen permissions"
+      - "mutation does not infer a prohibited sensitive trait"
+      - "mutation preserves rollback state"
+    postconditions:
+      - "new append-only revision written"
+      - "effective-agent manifest recompiled"
+      - "Rule 30 VDF proof envelope emitted"
+  prohibited_persistence:
+    - "credentials"
+    - "private keys"
+    - "access tokens"
+    - "raw message bodies unless explicitly configured by tenant policy"
+    - "biometric identity templates"
+    - "medical diagnosis inference"
+    - "protected-class inference"
+    - "political belief inference"
+    - "religious belief inference"
+    - "sexual orientation inference"
+  user_controls:
+    inspect: true
+    explain: true
+    correct: true
+    pin: true
+    rollback: true
+    export: true
+    delete: true
+
+individual_and_group_intent:
+  individual_intent_vector:
+    type: "pmode"
+    dimensions:
+      goals: "sparse-weighted-vector"
+      constraints: "typed-hard-and-soft-set"
+      preferences: "bounded-vector"
+      urgency: "range-0-to-1"
+      confidence: "range-0-to-1"
+      authorization: "capability-set"
+  group_intent:
+    aggregation: "robust-constraint-aware-consensus"
+    simple_average_forbidden: true
+    components:
+      shared_goals: "intersection-plus-ranked-union"
+      hard_constraints: "non-overridable-union"
+      ordinary_preferences: "configured-group-decision-rule"
+      dissent: "preserved-as-first-class-state"
+      confidence: "evidence-weighted"
+    default_decision_rule: "consent-for-boundaries-majority-for-ordinary-preferences"
+    role_weighting:
+      enabled: true
+      restriction: >-
+        Roles may weight procedural preferences and task expertise but may not
+        weaken another participant's hard boundary.
+
+tension_gradient:
+  engine_id: "gc.tension-gradient.v1"
+  purpose: >-
+    Estimate directional disagreement between each individual's intent state
+    and the group intent, classify the cause, and select a minimal bridge.
+  individual_gradient_formula: "T_i = W_i * (I_i - G)"
+  group_tension_formula: >-
+    T_group = robust_norm(T_i) + constraint_collision_penalty +
+    participation_imbalance_penalty
+  dimensions:
+    goal_divergence:
+      range: [0.0, 1.0]
+    constraint_collision:
+      range: [0.0, 1.0]
+    semantic_misalignment:
+      range: [0.0, 1.0]
+    priority_mismatch:
+      range: [0.0, 1.0]
+    temporal_pressure:
+      range: [0.0, 1.0]
+    participation_imbalance:
+      range: [0.0, 1.0]
+    confidence:
+      range: [0.0, 1.0]
+  classes:
+    - "aligned"
+    - "semantic-gap"
+    - "priority-gap"
+    - "constraint-collision"
+    - "value-conflict"
+    - "authorization-conflict"
+    - "unresolved"
+  temporal_model:
+    window: "bounded-rolling"
+    hysteresis_enabled: true
+    minimum_stable_observations: 3
+    stale_state_decay: true
+  evidence_requirements:
+    minimum_distinct_events: 2
+    single_message_high_impact_inference_forbidden: true
+    provenance_required: true
+
+bridge_engine:
+  engine_id: "gc.intent-bridge.v1"
+  objective: "minimize verified tension without erasing sovereign intent"
+  ordered_strategies:
+    - id: "semantic-translation"
+      action: "map equivalent concepts into shared terminology"
+    - id: "constraint-reconciliation"
+      action: "find a plan satisfying all hard constraints"
+    - id: "priority-sequencing"
+      action: "sequence competing ordinary goals"
+    - id: "perspective-adaptation"
+      action: "render the same proposal for each participant profile"
+    - id: "pareto-option"
+      action: "select a non-dominated compromise"
+    - id: "parallel-fork"
+      action: "split execution when consensus is unnecessary"
+    - id: "explicit-escalation"
+      action: "surface irreducible conflict without manufactured agreement"
+  simulation:
+    required_before_apply: true
+    estimate_before_and_after: true
+    evaluate_each_participant: true
+    preserve_counterfactual: true
+  application_rule: >-
+    apply_bridge(b) iff predicted_delta_tension(b) < 0 and
+    boundary_violation(b) = false and confidence(b) >= configured_minimum and
+    authorized(b) = true
+  rollback:
+    enabled: true
+    trigger_conditions:
+      - "observed tension increases beyond hysteresis margin"
+      - "new hard boundary appears"
+      - "authorization is revoked"
+      - "bridge evidence is contradicted"
+
+contextual_sovereignty:
+  precedence:
+    - level: 1
+      class: "hard-individual-boundary"
+      effect: "cannot-be-overridden"
+    - level: 2
+      class: "legal-safety-tenant-policy"
+      effect: "cannot-be-overridden"
+    - level: 3
+      class: "explicit-tool-authorization"
+      effect: "caps-autonomous-action"
+    - level: 4
+      class: "configured-group-decision-rule"
+      effect: "governs-ordinary-preferences"
+    - level: 5
+      class: "automatically-inferred-preference"
+      effect: "advisory-and-reversible"
+  hard_boundary_categories:
+    - "consent"
+    - "safety"
+    - "legal"
+    - "privacy"
+    - "data-residency"
+    - "declared-non-negotiable"
+    - "permission-envelope"
+  irreducible_conflict:
+    action: "surface-and-preserve"
+    manufactured_consensus: "forbidden"
+    minority_position_storage: "required"
+
+modular_differentiation:
+  compiler_id: "gc.modular-differentiation-compiler.v1"
+  output: "effective-agent-manifest"
+  compilation_mode: "event-driven-and-session-start"
+  deterministic: true
+  inputs:
+    - "immutable-base-contract"
+    - "tenant-policy"
+    - "user-profile-revision"
+    - "group-intent-revision"
+    - "tension-snapshot"
+    - "session-context"
+    - "available-capability-catalog"
+  module_selection:
+    method: "rule-plus-score"
+    score_range: [0.0, 1.0]
+    activation_threshold: 0.60
+    max_active_modules: 12
+    conflict_resolution: "higher-precedence-constraint-then-higher-confidence"
+    permission_filter: "mandatory-final-stage"
+  modules:
+    communication-adapter:
+      responsibility: "adapt style, density, terminology, and explanation form"
+      state_scope: "per-user"
+      can_modify_tool_permissions: false
+    workflow-sequencer:
+      responsibility: "adapt planning depth, step size, and verification cadence"
+      state_scope: "per-user-per-task"
+      can_modify_tool_permissions: false
+    intent-estimator:
+      responsibility: "maintain individual and group intent distributions"
+      state_scope: "per-user-and-group"
+      can_modify_tool_permissions: false
+    tension-gradient-estimator:
+      responsibility: "calculate directional group-individual tension"
+      state_scope: "per-group"
+      can_modify_tool_permissions: false
+    bridge-synthesizer:
+      responsibility: "propose and simulate minimum-cost bridges"
+      state_scope: "per-group"
+      can_modify_tool_permissions: false
+    contextual-sovereignty-guard:
+      responsibility: "enforce precedence and preserve dissent"
+      state_scope: "global-policy-plus-context"
+      can_modify_tool_permissions: false
+    topology-stability-sidecar:
+      responsibility: "emit bounded topology descriptors and stability margins"
+      state_scope: "bounded-per-session"
+      execution: "asynchronous-degradable-sidecar"
+      can_modify_tool_permissions: false
+    rule30-vdf-attestor:
+      responsibility: "attest profile, intent, bridge, and compile revisions"
+      state_scope: "append-only"
+      can_modify_tool_permissions: false
+    audit-explainer:
+      responsibility: "produce user-readable and machine-readable explanations"
+      state_scope: "request-scoped"
+      can_modify_tool_permissions: false
+  hot_reload:
+    enabled: true
+    atomic_manifest_swap: true
+    in_flight_action_policy: "complete-under-original-manifest"
+
+# TORX here is used as a typed probabilistic decision layer. It consumes
+# structured state and emits decisions; it is not a signal-processing layer.
+torx:
+  integration_id: "gc.torx.personalization.v1"
+  execution_role: "state-estimation-and-decision"
+  state_types:
+    pbit:
+      domain: [0, 1]
+      uses:
+        - "bridge-viability"
+        - "action-authorized"
+        - "boundary-violation"
+    pdit:
+      uses:
+        - "tension-class"
+        - "bridge-strategy"
+        - "topology-descriptor"
+        - "resolution-status"
+    pmode:
+      uses:
+        - "individual-intent-vector"
+        - "group-intent-vector"
+        - "tension-gradient"
+        - "group-tension"
+        - "confidence-state"
+  factor_graph:
+    nodes:
+      individual_intent:
+        type: "pmode"
+      group_intent:
+        type: "pmode"
+      tension_gradient:
+        type: "pmode"
+      tension_class:
+        type: "pdit"
+      topology_descriptor:
+        type: "pdit"
+      bridge_candidate:
+        type: "pdit"
+      bridge_viability:
+        type: "pbit"
+      boundary_violation:
+        type: "pbit"
+      action_authorized:
+        type: "pbit"
+      resolution_status:
+        type: "pdit"
+    directed_edges:
+      - ["individual_intent", "tension_gradient"]
+      - ["group_intent", "tension_gradient"]
+      - ["tension_gradient", "tension_class"]
+      - ["tension_gradient", "topology_descriptor"]
+      - ["tension_class", "bridge_candidate"]
+      - ["topology_descriptor", "bridge_candidate"]
+      - ["bridge_candidate", "bridge_viability"]
+      - ["bridge_candidate", "boundary_violation"]
+      - ["bridge_candidate", "action_authorized"]
+      - ["bridge_viability", "resolution_status"]
+      - ["boundary_violation", "resolution_status"]
+      - ["action_authorized", "resolution_status"]
+  kernels:
+    intent_update:
+      class: "bounded-stochastic-kernel"
+      inputs: ["prior-intent", "new-evidence", "source-confidence"]
+      output: "posterior-intent"
+    tension_classification:
+      class: "hybrid-discrete-continuous-kernel"
+      inputs: ["individual-intent", "group-intent", "context"]
+      output: "tension-class-and-gradient"
+    bridge_selection:
+      class: "constrained-decision-kernel"
+      inputs: ["tension-state", "boundaries", "authorization", "module-catalog"]
+      output: "bridge-candidate-distribution"
+  topology_sidecar:
+    enabled: true
+    critical_path: false
+    fallback_order:
+      - "last-valid-descriptor"
+      - "neutral-descriptor"
+      - "non-topological-torx-baseline"
+    defaults:
+      rolling_window_seconds: 20
+      maximum_points: 64
+      maximum_homology_dimension: 1
+      update_interval_ms: 1000
+    stability_contract:
+      bound: "d_B(D, D_perturbed) <= C_F * epsilon"
+      descriptor_invariance: "C_F * epsilon < Delta_descriptor / 2"
+
+rule30_vdf:
+  integration_id: "gc.rule30-vdf.attestation.v1"
+  purpose: "tamper-evident sequential attestation of state transitions"
+  algorithm: "rule30-vdf"
+  canonical_input:
+    encoding: "UTF-8 canonical JSON"
+    key_order: "lexicographic"
+    floating_point: "decimal-string-normalized"
+    excluded_fields:
+      - "vdf_proof"
+      - "transient-runtime-handles"
+  attested_events:
+    - "profile-revision-created"
+    - "profile-revision-rolled-back"
+    - "group-intent-revised"
+    - "tension-snapshot-created"
+    - "bridge-proposed"
+    - "bridge-applied"
+    - "bridge-rolled-back"
+    - "effective-agent-compiled"
+  proof_envelope:
+    required_fields:
+      - "proof_id"
+      - "event_id"
+      - "input_hash"
+      - "seed"
+      - "difficulty"
+      - "output"
+      - "proof"
+      - "created_at"
+      - "verifier_version"
+  verification:
+    deterministic: true
+    offline_verification: true
+    mcp_tool: "attestation.verify"
+  non_claims:
+    - "not-a-randomness-source"
+    - "not-a-consensus-mechanism"
+    - "not-proof-of-correctness-for-the-underlying-inference"
+
+jsonb_persistence:
+  engine: "PostgreSQL"
+  minimum_version: "15"
+  tenant_isolation: "row-level-security"
+  encryption:
+    in_transit: "TLS-required"
+    at_rest: "provider-or-disk-encryption-required"
+    field_level:
+      enabled_for:
+        - "explicit-private-boundaries"
+        - "user-correction-notes"
+  tables:
+    gc_user_profiles:
+      primary_key: ["tenant_id", "user_id"]
+      columns:
+        tenant_id: "uuid"
+        user_id: "uuid"
+        current_revision: "bigint"
+        profile: "jsonb"
+        profile_hash: "text"
+        effective_manifest_hash: "text"
+        created_at: "timestamptz"
+        updated_at: "timestamptz"
+      indexes:
+        - "btree(tenant_id, user_id)"
+        - "gin(profile jsonb_path_ops)"
+    gc_profile_revisions:
+      primary_key: ["tenant_id", "user_id", "revision"]
+      columns:
+        tenant_id: "uuid"
+        user_id: "uuid"
+        revision: "bigint"
+        source_event_ids: "jsonb"
+        delta: "jsonb"
+        full_snapshot: "jsonb"
+        confidence_summary: "jsonb"
+        supersedes_revision: "bigint-nullable"
+        vdf_proof_id: "uuid"
+        created_at: "timestamptz"
+      indexes:
+        - "btree(tenant_id, user_id, revision desc)"
+        - "gin(delta jsonb_path_ops)"
+    gc_group_intents:
+      primary_key: ["tenant_id", "group_id", "revision"]
+      columns:
+        tenant_id: "uuid"
+        group_id: "uuid"
+        revision: "bigint"
+        aggregate_intent: "jsonb"
+        member_intents: "jsonb"
+        decision_policy: "jsonb"
+        dissent: "jsonb"
+        vdf_proof_id: "uuid"
+        created_at: "timestamptz"
+      indexes:
+        - "btree(tenant_id, group_id, revision desc)"
+        - "gin(aggregate_intent jsonb_path_ops)"
+    gc_tension_snapshots:
+      primary_key: ["tenant_id", "group_id", "snapshot_id"]
+      columns:
+        tenant_id: "uuid"
+        group_id: "uuid"
+        snapshot_id: "uuid"
+        group_intent_revision: "bigint"
+        member_gradients: "jsonb"
+        group_tension: "numeric"
+        tension_class: "text"
+        confidence: "numeric"
+        topology_descriptor: "jsonb"
+        vdf_proof_id: "uuid"
+        observed_at: "timestamptz"
+      indexes:
+        - "btree(tenant_id, group_id, observed_at desc)"
+        - "btree(tenant_id, tension_class)"
+        - "gin(member_gradients jsonb_path_ops)"
+    gc_bridge_actions:
+      primary_key: ["tenant_id", "bridge_id"]
+      columns:
+        tenant_id: "uuid"
+        bridge_id: "uuid"
+        group_id: "uuid"
+        bridge_type: "text"
+        proposal: "jsonb"
+        simulation: "jsonb"
+        authorization: "jsonb"
+        status: "text"
+        rollback_of: "uuid-nullable"
+        vdf_proof_id: "uuid"
+        created_at: "timestamptz"
+        applied_at: "timestamptz-nullable"
+      indexes:
+        - "btree(tenant_id, group_id, created_at desc)"
+        - "btree(tenant_id, status)"
+        - "gin(simulation jsonb_path_ops)"
+    gc_vdf_attestations:
+      primary_key: ["tenant_id", "proof_id"]
+      columns:
+        tenant_id: "uuid"
+        proof_id: "uuid"
+        event_id: "uuid"
+        envelope: "jsonb"
+        verification_status: "text"
+        created_at: "timestamptz"
+      indexes:
+        - "btree(tenant_id, event_id)"
+        - "gin(envelope jsonb_path_ops)"
+  retention:
+    profile_revisions: "tenant-configurable-with-user-deletion-override"
+    tension_snapshots: "bounded-by-time-and-purpose"
+    raw_interaction_events: "not-required-by-this-card"
+
+jsonb_contracts:
+  user_profile:
+    required:
+      - "user_id"
+      - "revision"
+      - "explicit"
+      - "inferred"
+      - "hard_boundaries"
+      - "confidence"
+      - "provenance"
+    example:
+      user_id: "00000000-0000-0000-0000-000000000001"
+      revision: 17
+      explicit:
+        language: "en-US"
+        goals: ["ship-verifiable-systems"]
+      inferred:
+        communication:
+          technicality: 0.94
+          verbosity: 0.72
+        workflow:
+          verification_frequency: 0.91
+          parallelism_preference: 0.78
+      hard_boundaries:
+        permission_expansion: false
+        preserve_dissent: true
+      confidence:
+        communication: 0.93
+        workflow: 0.86
+      provenance:
+        event_ids: ["evt-example-1", "evt-example-2"]
+  tension_snapshot:
+    required:
+      - "group_id"
+      - "group_intent_revision"
+      - "member_gradients"
+      - "group_tension"
+      - "tension_class"
+      - "confidence"
+    example:
+      group_id: "00000000-0000-0000-0000-000000000100"
+      group_intent_revision: 8
+      member_gradients:
+        "00000000-0000-0000-0000-000000000001":
+          goal_divergence: 0.18
+          constraint_collision: 0.00
+          semantic_misalignment: 0.42
+          priority_mismatch: 0.31
+          temporal_pressure: 0.60
+          participation_imbalance: 0.10
+          confidence: 0.84
+      group_tension: 0.37
+      tension_class: "semantic-gap"
+      confidence: 0.84
+  bridge_action:
+    required:
+      - "bridge_id"
+      - "bridge_type"
+      - "predicted_before"
+      - "predicted_after"
+      - "boundary_violation"
+      - "authorized"
+      - "status"
+    example:
+      bridge_id: "00000000-0000-0000-0000-000000000200"
+      bridge_type: "semantic-translation"
+      predicted_before: 0.37
+      predicted_after: 0.19
+      boundary_violation: false
+      authorized: true
+      preserved_dissent: []
+      status: "applied"
+
+mcp:
+  server:
+    id: "torx-contextual-sovereignty-mcp"
+    protocol_version: "negotiated"
+    transports:
+      - "stdio"
+      - "streamable-http"
+    discovery:
+      agent_card_path: "/.well-known/agent-card.json"
+      mcp_path: "/mcp"
+    content_types:
+      - "application/json"
+      - "application/yaml"
+    authentication:
+      required: true
+      mechanisms:
+        - "oauth2-or-oidc"
+        - "service-identity"
+    authorization:
+      model: "tenant-scoped-capability-grants"
+      default: "deny"
+      self_expansion: "forbidden"
+    idempotency:
+      required_for_mutations: true
+      header: "Idempotency-Key"
+  tools:
+    - name: "profile.inspect"
+      mutating: false
+      permission: "profile:read"
+      input_schema:
+        type: "object"
+        required: ["user_id"]
+        properties:
+          user_id: {type: "string", format: "uuid"}
+          revision: {type: ["integer", "null"]}
+      output: "jsonb_contracts.user_profile"
+    - name: "profile.explain"
+      mutating: false
+      permission: "profile:read"
+      input_schema:
+        type: "object"
+        required: ["user_id"]
+        properties:
+          user_id: {type: "string", format: "uuid"}
+          include_provenance: {type: "boolean", default: true}
+      output: "human-and-machine-readable-explanation"
+    - name: "profile.correct"
+      mutating: true
+      permission: "profile:write"
+      input_schema:
+        type: "object"
+        required: ["user_id", "patch", "reason"]
+        properties:
+          user_id: {type: "string", format: "uuid"}
+          patch: {type: "object"}
+          reason: {type: "string", minLength: 1}
+      output: "new-profile-revision-and-vdf-proof"
+    - name: "profile.rollback"
+      mutating: true
+      permission: "profile:write"
+      input_schema:
+        type: "object"
+        required: ["user_id", "target_revision", "reason"]
+        properties:
+          user_id: {type: "string", format: "uuid"}
+          target_revision: {type: "integer", minimum: 1}
+          reason: {type: "string", minLength: 1}
+      output: "rollback-revision-and-vdf-proof"
+    - name: "profile.export"
+      mutating: false
+      permission: "profile:export"
+      input_schema:
+        type: "object"
+        required: ["user_id", "format"]
+        properties:
+          user_id: {type: "string", format: "uuid"}
+          format: {type: "string", enum: ["json", "yaml"]}
+      output: "portable-profile-document"
+    - name: "profile.delete"
+      mutating: true
+      permission: "profile:delete"
+      input_schema:
+        type: "object"
+        required: ["user_id", "scope"]
+        properties:
+          user_id: {type: "string", format: "uuid"}
+          scope: {type: "string", enum: ["inferred-only", "all-profile-data"]}
+      output: "deletion-receipt"
+    - name: "group.intent.evaluate"
+      mutating: true
+      permission: "group:intent:write"
+      input_schema:
+        type: "object"
+        required: ["group_id", "member_event_refs"]
+        properties:
+          group_id: {type: "string", format: "uuid"}
+          member_event_refs: {type: "array", minItems: 1, items: {type: "string"}}
+          decision_policy: {type: ["object", "null"]}
+      output: "group-intent-revision-and-vdf-proof"
+    - name: "group.tension.evaluate"
+      mutating: true
+      permission: "group:tension:write"
+      input_schema:
+        type: "object"
+        required: ["group_id", "group_intent_revision"]
+        properties:
+          group_id: {type: "string", format: "uuid"}
+          group_intent_revision: {type: "integer", minimum: 1}
+      output: "jsonb_contracts.tension_snapshot"
+    - name: "bridge.propose"
+      mutating: true
+      permission: "bridge:propose"
+      input_schema:
+        type: "object"
+        required: ["group_id", "tension_snapshot_id"]
+        properties:
+          group_id: {type: "string", format: "uuid"}
+          tension_snapshot_id: {type: "string", format: "uuid"}
+          maximum_candidates: {type: "integer", minimum: 1, maximum: 8, default: 3}
+      output: "ranked-bridge-simulations"
+    - name: "bridge.apply"
+      mutating: true
+      permission: "bridge:apply"
+      input_schema:
+        type: "object"
+        required: ["bridge_id"]
+        properties:
+          bridge_id: {type: "string", format: "uuid"}
+          expected_snapshot_id: {type: "string", format: "uuid"}
+      output: "applied-bridge-and-vdf-proof"
+    - name: "bridge.rollback"
+      mutating: true
+      permission: "bridge:apply"
+      input_schema:
+        type: "object"
+        required: ["bridge_id", "reason"]
+        properties:
+          bridge_id: {type: "string", format: "uuid"}
+          reason: {type: "string", minLength: 1}
+      output: "rollback-action-and-vdf-proof"
+    - name: "agent.compile"
+      mutating: true
+      permission: "agent:compile"
+      input_schema:
+        type: "object"
+        required: ["user_id", "session_id"]
+        properties:
+          user_id: {type: "string", format: "uuid"}
+          group_id: {type: ["string", "null"], format: "uuid"}
+          session_id: {type: "string"}
+          requested_capabilities: {type: "array", items: {type: "string"}}
+      output: "effective-agent-manifest-and-vdf-proof"
+    - name: "attestation.verify"
+      mutating: false
+      permission: "attestation:verify"
+      input_schema:
+        type: "object"
+        required: ["proof_id"]
+        properties:
+          proof_id: {type: "string", format: "uuid"}
+      output: "verification-result"
+  resources:
+    - uri_template: "profile://{tenant_id}/{user_id}/effective"
+      permission: "profile:read"
+    - uri_template: "profile://{tenant_id}/{user_id}/revisions/{revision}"
+      permission: "profile:read"
+    - uri_template: "group://{tenant_id}/{group_id}/intent/latest"
+      permission: "group:intent:read"
+    - uri_template: "group://{tenant_id}/{group_id}/tension/latest"
+      permission: "group:tension:read"
+    - uri_template: "bridge://{tenant_id}/{bridge_id}"
+      permission: "bridge:read"
+    - uri_template: "attestation://{tenant_id}/{proof_id}"
+      permission: "attestation:verify"
+  prompts:
+    - name: "explain-personalization"
+      purpose: "explain which evidence activated each module and preference"
+    - name: "resolve-group-gap"
+      purpose: "render dissent, shared invariants, and minimum-cost bridge options"
+    - name: "audit-bridge-decision"
+      purpose: "show boundary checks, authorization, and before-after estimates"
+  errors:
+    format: "application/problem+json"
+    required_fields:
+      - "type"
+      - "title"
+      - "status"
+      - "code"
+      - "trace_id"
+    stable_codes:
+      - "BOUNDARY_VIOLATION"
+      - "INSUFFICIENT_CONFIDENCE"
+      - "AUTHORIZATION_DENIED"
+      - "STALE_INTENT_REVISION"
+      - "BRIDGE_INCREASES_TENSION"
+      - "PROFILE_REVISION_CONFLICT"
+      - "VDF_VERIFICATION_FAILED"
+
+runtime:
+  event_model:
+    ordering_key: "tenant_id:group_id-or-user_id"
+    delivery: "at-least-once"
+    consumers_must_be_idempotent: true
+  state_bounds:
+    profile_max_document_bytes: 262144
+    group_member_count_soft_limit: 256
+    active_tension_window_events_per_member: 64
+    bridge_candidates_per_cycle: 8
+    active_modules_per_effective_agent: 12
+  critical_path:
+    components:
+      - "authorization-filter"
+      - "contextual-sovereignty-guard"
+      - "torx-state-update"
+      - "effective-agent-manifest-read"
+    excluded:
+      - "topology-stability-sidecar"
+      - "long-horizon-profile-compaction"
+      - "offline-vdf-batch-verification"
+  degradation:
+    order:
+      - "reduce-topology-refresh-frequency"
+      - "use-last-valid-topology-descriptor"
+      - "disable-topology-sidecar"
+      - "freeze-profile-learning"
+      - "retain-base-agent-plus-hard-boundaries"
+    never_disable:
+      - "authorization-filter"
+      - "hard-boundary-enforcement"
+      - "dissent-preservation"
+
+observability:
+  audit_events:
+    - "personalization.observation.accepted"
+    - "personalization.observation.rejected"
+    - "profile.revision.created"
+    - "profile.revision.rolled_back"
+    - "group.intent.revised"
+    - "tension.snapshot.created"
+    - "bridge.proposed"
+    - "bridge.applied"
+    - "bridge.rejected"
+    - "bridge.rolled_back"
+    - "agent.compiled"
+    - "vdf.attested"
+    - "vdf.verification_failed"
+  metrics:
+    - "gc_profile_revision_total"
+    - "gc_profile_mutation_rejected_total"
+    - "gc_group_tension_current"
+    - "gc_bridge_predicted_delta"
+    - "gc_bridge_observed_delta"
+    - "gc_boundary_violation_block_total"
+    - "gc_false_consensus_guard_total"
+    - "gc_effective_agent_compile_seconds"
+    - "gc_torx_update_seconds"
+    - "gc_topology_sidecar_seconds"
+    - "gc_vdf_attestation_seconds"
+    - "gc_mcp_tool_call_total"
+  tracing:
+    required_span_attributes:
+      - "tenant.id"
+      - "user.id_hash"
+      - "group.id_hash"
+      - "profile.revision"
+      - "group_intent.revision"
+      - "tension.class"
+      - "bridge.type"
+      - "effective_manifest.hash"
+      - "vdf.proof_id"
+
+security_and_privacy:
+  threat_controls:
+    prompt_injection:
+      profile_mutation_requires_structured_evidence: true
+      untrusted_text_cannot_directly_write_profile: true
+    poisoning:
+      evidence_source_weighting: true
+      contradiction_retention: true
+      rollback: true
+    collusion:
+      minority_boundary_preservation: true
+      role_weighting_cannot_override_boundaries: true
+    exfiltration:
+      mcp_default_deny: true
+      field_level_encryption: true
+      export_permission_separate: true
+    replay:
+      idempotency_keys: true
+      monotonic_revisions: true
+      vdf_event_binding: true
+  data_minimization:
+    store_features_not_raw_content: true
+    purpose_binding: true
+    bounded_retention: true
+  tenant_policy:
+    may_disable_automatic_learning: true
+    may_reduce_retention: true
+    may_narrow_module_catalog: true
+    may_not_disable_hard_boundary_enforcement: true
+
+validation:
+  schema:
+    yaml_parse_required: true
+    jsonb_contract_validation_required: true
+    mcp_input_schema_validation_required: true
+  behavioral_acceptance:
+    - id: "personalization-auto-fit"
+      assertion: >-
+        Repeated compatible evidence updates the user profile and recompiles the
+        effective agent without manual approval.
+    - id: "permission-non-expansion"
+      assertion: >-
+        No inferred preference or group intent can widen the MCP capability grant.
+    - id: "contextual-sovereignty"
+      assertion: >-
+        A hard individual boundary blocks an otherwise majority-supported bridge.
+    - id: "ordinary-preference-resolution"
+      assertion: >-
+        The configured group rule resolves an ordinary preference conflict while
+        preserving the minority position in the audit record.
+    - id: "no-false-consensus"
+      assertion: >-
+        Irreducible value conflict produces an unresolved state and explicit
+        escalation rather than a fabricated consensus result.
+    - id: "bridge-benefit"
+      assertion: >-
+        An applied bridge has predicted negative delta tension and is rolled back
+        when observed tension exceeds the configured hysteresis margin.
+    - id: "vdf-binding"
+      assertion: >-
+        Any mutation of an attested profile, intent, bridge, or manifest invalidates
+        Rule 30 VDF verification.
+    - id: "degraded-operation"
+      assertion: >-
+        Failure of the topology sidecar preserves TORX decisions, authorization,
+        hard boundaries, and the last valid or neutral topology descriptor.
+  load_qualification:
+    status: "required-before-scale-proven-claim"
+    gates:
+      - "bounded-memory-per-active-user-and-group"
+      - "horizontal-throughput-scaling"
+      - "MCP-p99-within-tenant-budget"
+      - "TORX-update-p99-within-decision-budget"
+      - "topology-sidecar-does-not-block-critical-path"
+      - "JSONB-index-selectivity-remains-acceptable"
+      - "VDF-attestation-backlog-remains-bounded"
+
+deployment:
+  topology: "horizontally-partitioned-stateful-workers"
+  partition_key: "tenant_id:group_id-or-user_id"
+  recommended_components:
+    - "MCP gateway"
+    - "profile compiler workers"
+    - "TORX state workers"
+    - "bridge simulation workers"
+    - "Rule 30 VDF attestation workers"
+    - "PostgreSQL primary plus read replicas"
+    - "event stream"
+    - "topology sidecar workers"
+  consistency:
+    profile_revision: "optimistic-concurrency-control"
+    group_intent_revision: "compare-and-swap"
+    bridge_apply: "snapshot-bound"
+  availability:
+    base_agent_fallback: true
+    hard_boundaries_cached: true
+    topology_sidecar_optional: true
+    vdf_attestation:
+      synchronous_for: ["bridge-apply", "permission-sensitive-profile-correction"]
+      asynchronous_for: ["ordinary-preference-learning", "offline-compaction"]
+  readiness_claim: "design-approved-requires-implementation-and-load-validation"

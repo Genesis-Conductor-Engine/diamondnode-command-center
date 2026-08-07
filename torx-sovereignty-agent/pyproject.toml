@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "torx-contextual-sovereignty-agent"
+version = "0.1.0"
+description = "TORX Contextual Sovereignty Agent — per-user effective-agent compiler on the thrml/torx kernels"
+requires-python = ">=3.12"
+dependencies = [
+  "pydantic>=2.7",
+  "PyYAML>=6",
+  "SQLAlchemy>=2.0",
+  "alembic>=1.13",
+  "mcp>=1.0",
+]
+
+[project.optional-dependencies]
+kernels = ["extro-torx>=0.0.1", "thrml>=0.1.4", "jax>=0.4"]
+postgres = ["psycopg[binary]>=3.1"]
+dev = ["pytest>=8", "hypothesis>=6"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+markers = [
+  "postgres: requires a live PostgreSQL 15+ at $TORX_TEST_DATABASE_URL",
+  "kernel: requires the extro-torx / thrml kernels installed",
+  "load: load-qualification test, slow",
+]
